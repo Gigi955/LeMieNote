@@ -1905,6 +1905,8 @@
                 }
             };
 
+            const contentAreaRef = useRef(null);
+
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
             const highlightText = (text, query) => {
