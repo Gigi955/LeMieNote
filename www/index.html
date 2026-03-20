@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *; media-src 'self' data: blob: *; connect-src 'self' https://unpkg.com *;">
+    <title>Le Mie Note</title>
+    <script src="cordova.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+            -webkit-text-size-adjust: 100%;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body.light { background-color: #f5f5f5; color: #000; }
+        body.dark { background-color: #121212; color: #fff; }
+
+        /* Dimensione testo - Grande */
+        body.text-grande .note-title { font-size: 22px; }
+        body.text-grande .note-content { font-size: 17px; }
+        body.text-grande .note-theme { font-size: 17px; }
+        body.text-grande .note-date { font-size: 15px; }
+        body.text-grande .note-category { font-size: 14px; }
+        body.text-grande .form-label { font-size: 15px; }
+        body.text-grande .form-input, body.text-grande .form-textarea, body.text-grande .form-select { font-size: 19px; }
+        body.text-grande .dropdown-item { font-size: 17px; }
+        body.text-grande .filter-label { font-size: 18px; }
+        body.text-grande .filter-select { font-size: 18px; }
+        body.text-grande .nav-label { font-size: 12px; }
+
+        /* Dimensione testo - Molto Grande */
+        body.text-molto-grande .note-title { font-size: 26px; }
+        body.text-molto-grande .note-content { font-size: 20px; }
+        body.text-molto-grande .note-theme { font-size: 20px; }
+        body.text-molto-grande .note-date { font-size: 18px; }
+        body.text-molto-grande .note-category { font-size: 17px; }
+        body.text-molto-grande .form-label { font-size: 18px; }
+        body.text-molto-grande .form-input, body.text-molto-grande .form-textarea, body.text-molto-grande .form-select { font-size: 22px; }
+        body.text-molto-grande .dropdown-item { font-size: 20px; }
+        body.text-molto-grande .filter-label { font-size: 20px; }
+        body.text-molto-grande .filter-select { font-size: 20px; }
+        body.text-molto-grande .nav-label { font-size: 13px; }
+
+        .phone-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: 0;
+            padding: 0;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .phone-screen {
+            background: #fff;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .dark .phone-screen { background: #121212; }
+
+        /* Toolbar */
+        .toolbar {
+            color: white;
+            padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: background-color 0.3s;
+            flex-shrink: 0;
+        }
+
+        .toolbar.modern { background: #2196F3; }
+        .toolbar.nature { background: #4CAF50; }
+        .toolbar.ocean { background: #00BCD4; }
+        .toolbar.sunset { background: #FF5722; }
+        .toolbar.minimal { background: #607D8B; }
+
+        .toolbar h1 { font-size: 20px; font-weight: 500; }
+
+        .toolbar-actions { display: flex; gap: 8px; }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .dropdown { position: relative; }
+
+        .dropdown-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 999;
+            background: transparent;
+        }
+
+        .dropdown-overlay.show { display: block; }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            min-width: 220px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            margin-top: 8px;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .dark .dropdown-content { background: #1e1e1e; }
+        .dropdown-content.show { display: block; }
+
+        .dropdown-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+
+        .dark .dropdown-item {
+            color: #fff;
+            border-bottom: 1px solid #333;
+        }
+
+        .dropdown-item:hover { background: #f5f5f5; }
+        .dark .dropdown-item:hover { background: #333; }
+
+        /* Content Area - scrollabile */
+        .content-area {
+            flex: 1 1 0%;
+            min-height: 0;
+            overflow-y: scroll;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+            overscroll-behavior: contain;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            display: flex;
+            background: white;
+            border-top: 2px solid #ddd;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            z-index: 100;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .dark .bottom-nav {
+            background: #1e1e1e;
+            border-top-color: #333;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+        }
+
+        .nav-item {
+            flex: 1;
+            padding: 8px 12px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            color: #757575;
+            font-size: 22px;
+            transition: color 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            touch-action: manipulation;
+        }
+
+        .dark .nav-item { color: #b0b0b0; }
+
+        .nav-item.active.modern { color: #2196F3; }
+        .nav-item.active.nature { color: #4CAF50; }
+        .nav-item.active.ocean { color: #00BCD4; }
+        .nav-item.active.sunset { color: #FF5722; }
+        .nav-item.active.minimal { color: #607D8B; }
+
+        .nav-label {
+            font-size: 10px;
+            line-height: 1;
+            margin-top: 1px;
+        }
+
+        /* Icona calendario personalizzata */
+        .cal-icon {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border: 2px solid currentColor;
+            border-radius: 4px;
+            position: relative;
+            font-size: 12px;
+            line-height: 1;
+        }
+
+        .cal-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background: currentColor;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .cal-day {
+            margin-top: 5px;
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* Filter Container con BORDO SPESSO come screenshot */
+        .filter-container {
+            padding: 16px;
+            background: #fff;
+        }
+
+        .dark .filter-container { background: #121212; }
+
+        .filter-label {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .dark .filter-label { color: #fff; }
+
+        .filter-select {
+            width: 100%;
+            padding: 16px;
+            border: 3px solid #000;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+        }
+
+        .dark .filter-select {
+            background: #1e1e1e;
+            color: #fff;
+            border-color: #fff;
+        }
+
+        /* Notes */
+        .notes-container { padding: 8px; }
+
+        .note-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .dark .note-card {
+            background: #1e1e1e;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .note-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .note-date {
+            font-size: 12px;
+            color: #757575;
+        }
+
+        .dark .note-date { color: #b0b0b0; }
+
+        .note-category {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .note-category.modern { background: #2196F3; }
+        .note-category.nature { background: #4CAF50; }
+        .note-category.ocean { background: #00BCD4; }
+        .note-category.sunset { background: #FF5722; }
+        .note-category.minimal { background: #607D8B; }
+
+        .note-theme {
+            font-size: 14px;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .dark .note-theme { color: #ccc; }
+
+        .note-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #000;
+        }
+
+        .dark .note-title { color: #fff; }
+
+        .note-title.completed {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .note-content {
+            font-size: 14px;
+            color: #757575;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .dark .note-content { color: #b0b0b0; }
+
+        .note-images {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+
+        .note-image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .reminder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #FFA726;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        /* FAB */
+        .fab {
+            position: absolute;
+            bottom: 75px;
+            right: 16px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            color: white;
+            border: none;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            z-index: 99;
+            touch-action: manipulation;
+        }
+
+        .fab.modern { background: #2196F3; }
+        .fab.nature { background: #4CAF50; }
+        .fab.ocean { background: #00BCD4; }
+        .fab.sunset { background: #FF5722; }
+        .fab.minimal { background: #607D8B; }
+
+        .fab:hover { transform: scale(1.1); }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 20px auto;
+            flex-shrink: 0;
+        }
+
+        .dark .modal-content { background: #1e1e1e; }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 { font-size: 20px; }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: #757575;
+        }
+
+        .dark .close-btn { color: #b0b0b0; }
+
+        /* Form */
+        .form-group { margin-bottom: 16px; }
+
+        .form-label {
+            display: block;
+            font-size: 12px;
+            color: #757575;
+            margin-bottom: 4px;
+        }
+
+        .dark .form-label { color: #b0b0b0; }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            color: #333;
+        }
+
+        .dark .form-input, .dark .form-textarea, .dark .form-select {
+            background: #2a2a2a;
+            color: #fff;
+            border-color: #444;
+        }
+
+        .form-textarea {
+            min-height: 350px;
+            max-height: 50vh;
+            resize: vertical;
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: #4CAF50; }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .btn-primary {
+            color: white;
+        }
+
+        .btn-primary.modern { background: #2196F3; }
+        .btn-primary.nature { background: #4CAF50; }
+        .btn-primary.ocean { background: #00BCD4; }
+        .btn-primary.sunset { background: #FF5722; }
+        .btn-primary.minimal { background: #607D8B; }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .dark .btn-secondary {
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .image-item {
+            position: relative;
+            aspect-ratio: 1;
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .image-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f44336;
+            color: white;
+            border: 2px solid white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #757575;
+        }
+
+        .dark .empty-state { color: #b0b0b0; }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 16px;
+            max-width: calc(100% - 32px);
+        }
+
+        .search-input.modern { border-color: #2196F3; }
+        .search-input.nature { border-color: #4CAF50; }
+        .search-input.ocean { border-color: #00BCD4; }
+        .search-input.sunset { border-color: #FF5722; }
+        .search-input.minimal { border-color: #607D8B; }
+
+        .highlight {
+            background: yellow;
+            color: black;
+            padding: 2px 4px;
+            border-radius: 2px;
+        }
+
+        /* Calendar */
+        .calendar-container {
+            padding: 16px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 12px;
+            color: white;
+            border-radius: 8px;
+        }
+
+        .calendar-header.modern { background: #2196F3; }
+        .calendar-header.nature { background: #4CAF50; }
+        .calendar-header.ocean { background: #00BCD4; }
+        .calendar-header.sunset { background: #FF5722; }
+        .calendar-header.minimal { background: #607D8B; }
+
+        .calendar-nav {
+            display: flex;
+            gap: 16px;
+        }
+
+        .calendar-nav button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .calendar-month {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 8px;
+            color: #757575;
+        }
+
+        .dark .calendar-day-header { color: #b0b0b0; }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+            border: 1px solid #eee;
+            position: relative;
+        }
+
+        .dark .calendar-day {
+            background: #1e1e1e;
+            border-color: #333;
+        }
+
+        .calendar-day.other-month { opacity: 0.3; }
+
+        .calendar-day.today {
+            font-weight: bold;
+        }
+
+        .calendar-day.today.modern { border: 2px solid #2196F3; }
+        .calendar-day.today.nature { border: 2px solid #4CAF50; }
+        .calendar-day.today.ocean { border: 2px solid #00BCD4; }
+        .calendar-day.today.sunset { border: 2px solid #FF5722; }
+        .calendar-day.today.minimal { border: 2px solid #607D8B; }
+
+        .calendar-day.selected {
+            color: white;
+        }
+
+        .calendar-day.selected.modern { background: #2196F3; }
+        .calendar-day.selected.nature { background: #4CAF50; }
+        .calendar-day.selected.ocean { background: #00BCD4; }
+        .calendar-day.selected.sunset { background: #FF5722; }
+        .calendar-day.selected.minimal { background: #607D8B; }
+
+        .calendar-day.has-notes::after {
+            content: '•';
+            position: absolute;
+            bottom: 2px;
+            font-size: 20px;
+            color: #FF4081;
+        }
+
+        .calendar-day:hover { background: #E3F2FD; }
+        .dark .calendar-day:hover { background: #2a2a2a; }
+
+        .selected-date-header {
+            color: white;
+            padding: 12px 16px;
+            margin: 0 -16px 16px -16px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .selected-date-header.modern { background: #2196F3; }
+        .selected-date-header.nature { background: #4CAF50; }
+        .selected-date-header.ocean { background: #00BCD4; }
+        .selected-date-header.sunset { background: #FF5722; }
+        .selected-date-header.minimal { background: #607D8B; }
+
+        .date-picker-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .dark .date-picker-btn {
+            background: #2a2a2a;
+            border-color: #444;
+            color: white;
+        }
+
+        .date-time-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .pin-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            padding: 32px;
+        }
+
+        .pin-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .pin-input {
+            width: 200px;
+            padding: 16px;
+            font-size: 32px;
+            text-align: center;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.7;
+            }
+        }
+
+        /* Buttons and interactive elements */
+        button, .btn, .dropdown-item, .note-card, .calendar-day, .date-picker-btn {
+            touch-action: manipulation;
+        }
+
+        /* Prevent text selection on UI elements */
+        .toolbar, .bottom-nav, .fab, .btn, .nav-item, .dropdown-item {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body class="light">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // === NOTIFICHE LOCALI NATIVE (funzionano anche ad app chiusa) ===
+        // Usa il plugin nativo ReminderPlugin con AlarmManager di Android
+        const scheduleNativeReminder = (noteId, noteTitle, noteContent, reminderDateTime, ringtoneUri) => {
+            if (!window.cordova || !window.cordova.exec) {
+                console.log('Cordova non disponibile, notifica nativa non programmata');
+                return;
+            }
+
+            try {
+                // Parse data formato italiano: "16/02/2026 10:00"
+                const parts = reminderDateTime.split(' ');
+                const dateParts = parts[0].split('/');
+                const timeParts = parts[1] || '00:00';
+                const reminderDate = new Date(
+                    parseInt(dateParts[2]),
+                    parseInt(dateParts[1]) - 1,
+                    parseInt(dateParts[0]),
+                    parseInt(timeParts.split(':')[0]),
+                    parseInt(timeParts.split(':')[1]),
+                    0
+                );
+
+                // Non programmare se la data è già passata
+                if (reminderDate <= new Date()) {
+                    console.log('Promemoria nel passato, non programmato');
+                    return;
+                }
+
+                // Crea un ID numerico unico basato sull'ID della nota
+                const notifId = Math.abs(noteId % 2147483647);
+                const triggerTimeMs = reminderDate.getTime();
+                const title = 'PROMEMORIA - Le Mie Note';
+                const text = noteTitle + (noteContent ? '\n' + noteContent.substring(0, 100) : '');
+
+                // Chiama il plugin nativo Java tramite cordova.exec
+                cordova.exec(
+                    function(result) {
+                        console.log('Notifica nativa programmata per:', reminderDate.toString(), result);
+                    },
+                    function(error) {
+                        console.error('Errore programmazione notifica nativa:', error);
+                    },
+                    'ReminderPlugin',
+                    'schedule',
+                    [notifId, triggerTimeMs, title, text, ringtoneUri || '']
+                );
+
+            } catch (e) {
+                console.error('Errore programmazione notifica nativa:', e);
+            }
+        };
+
+        const cancelNativeReminder = (noteId) => {
+            if (!window.cordova || !window.cordova.exec) {
+                return;
+            }
+            try {
+                const notifId = Math.abs(noteId % 2147483647);
+                cordova.exec(
+                    function(result) {
+                        console.log('Notifica nativa cancellata per nota:', noteId, result);
+                    },
+                    function(error) {
+                        console.error('Errore cancellazione notifica:', error);
+                    },
+                    'ReminderPlugin',
+                    'cancel',
+                    [notifId]
+                );
+            } catch (e) {
+                console.error('Errore cancellazione notifica:', e);
+            }
+        };
+
+        // === SUONERIE NATIVE DEL TELEFONO ===
+
+        const pickNativeRingtone = (onSuccess) => {
+            if (!window.cordova || !window.cordova.exec) {
+                alert('Funzione disponibile solo su dispositivo Android');
+                return;
+            }
+            cordova.exec(
+                function(result) {
+                    // result = { uri: "content://...", title: "Nome suoneria" }
+                    localStorage.setItem('notesAppRingtoneUri', result.uri);
+                    localStorage.setItem('notesAppRingtoneTitle', result.title);
+                    if (onSuccess) onSuccess(result.uri, result.title);
+                },
+                function(err) {
+                    if (err !== 'Annullato') {
+                        console.error('Errore selezione suoneria:', err);
+                    }
+                },
+                'ReminderPlugin',
+                'pickRingtone',
+                []
+            );
+        };
+
+        const playNativeRingtone = (uri) => {
+            if (!window.cordova || !window.cordova.exec) return;
+            cordova.exec(null, null, 'ReminderPlugin', 'playRingtone', [uri || '']);
+        };
+
+        const stopNativeRingtone = () => {
+            if (!window.cordova || !window.cordova.exec) return;
+            cordova.exec(null, null, 'ReminderPlugin', 'stopRingtone', []);
+        };
+
+        const App = () => {
+            const [theme, setTheme] = useState(() => {
+                const saved = localStorage.getItem('notesAppTheme');
+                return saved || 'light';
+            });
+            const [style, setStyle] = useState(() => {
+                const saved = localStorage.getItem('notesAppStyle');
+                return saved || 'nature';
+            });
+            const [appFont, setAppFont] = useState(() => {
+                return localStorage.getItem('notesAppFont') || 'system';
+            });
+            const [showFontSelector, setShowFontSelector] = useState(false);
+            const [textSize, setTextSize] = useState(() => {
+                return localStorage.getItem('notesAppTextSize') || 'normale';
+            });
+            const [showTextSizeSelector, setShowTextSizeSelector] = useState(false);
+            const [currentView, setCurrentView] = useState('notes');
+            const [notes, setNotes] = useState([]);
+            const [categories, setCategories] = useState(() => {
+                const saved = localStorage.getItem('notesAppCategories');
+                return saved ? JSON.parse(saved) : ['Finanze', 'Giardino', 'Programmi ai', 'Ricerche', 'Tdg', 'Varie'];
+            });
+            const [selectedFilter, setSelectedFilter] = useState('Tutto');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [sortMode, setSortMode] = useState('date'); // 'date' | 'category' | 'alphabetical'
+            const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
+            const [showAddEdit, setShowAddEdit] = useState(false);
+            const [showMenu, setShowMenu] = useState(false);
+            const [showStyleSelector, setShowStyleSelector] = useState(false);
+            const [showCategoryManager, setShowCategoryManager] = useState(false);
+            const [showHelp, setShowHelp] = useState(false);
+            const [showExportCategory, setShowExportCategory] = useState(false);
+            const [showTimePicker, setShowTimePicker] = useState(false);
+            const [selectedDateForReminder, setSelectedDateForReminder] = useState(null);
+            const [editingNote, setEditingNote] = useState(null);
+            const [lightboxSrc, setLightboxSrc] = useState(null);
+            const [pdfViewerSrc, setPdfViewerSrc] = useState(null);
+            const [appPin, setAppPin] = useState(() => {
+                return localStorage.getItem('notesAppPin') || '';
+            });
+            const [pinLocked, setPinLocked] = useState(() => {
+                // Se c'è un PIN salvato, blocca l'app all'avvio
+                const savedPin = localStorage.getItem('notesAppPin');
+                return savedPin && savedPin.length >= 4;
+            });
+            const [pinInput, setPinInput] = useState('');
+            const [showDatePicker, setShowDatePicker] = useState(false);
+            const [showReminderPicker, setShowReminderPicker] = useState(false);
+            const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
+            const [currentMonth, setCurrentMonth] = useState(new Date());
+            const [pickerMonth, setPickerMonth] = useState(new Date());
+            
+            const [reminderRingtoneUri, setReminderRingtoneUri] = useState(
+                () => localStorage.getItem('notesAppRingtoneUri') || '');
+            const [reminderRingtoneTitle, setReminderRingtoneTitle] = useState(
+                () => localStorage.getItem('notesAppRingtoneTitle') || 'Suoneria predefinita');
+
+            const [formData, setFormData] = useState({
+                date: new Date().toLocaleDateString('it-IT'),
+                category: 'Finanze',
+                theme: '',
+                title: '',
+                content: '',
+                images: [],
+                attachments: [],
+                reminderDateTime: '',
+                reminderEnabled: false,
+                reminderRingtoneUri: '',
+                completed: false
+            });
+
+            // Carica note da localStorage all'avvio
+            useEffect(() => {
+                document.body.className = theme;
+                
+                try {
+                    const savedNotes = localStorage.getItem('notesAppData');
+                    if (savedNotes) {
+                        const parsedNotes = JSON.parse(savedNotes);
+                        console.log('📖 Caricamento note salvate:', parsedNotes.length);
+                        setNotes(parsedNotes);
+                    } else if (notes.length === 0) {
+                        // Carica note di esempio solo se non ci sono dati salvati
+                        const today = new Date();
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        
+                        setNotes([
+                            {
+                                id: 1,
+                                date: today.toLocaleDateString('it-IT'),
+                                category: 'Finanze',
+                                theme: 'Pagamenti',
+                                title: 'Pagare bolletta luce',
+                                content: 'Scadenza pagamento bolletta elettricità entro oggi.',
+                                images: [],
+                                reminderDateTime: today.toLocaleDateString('it-IT') + ' 18:00',
+                                reminderEnabled: true,
+                                completed: false
+                            },
+                            {
+                                id: 2,
+                                date: tomorrow.toLocaleDateString('it-IT'),
+                                category: 'Giardino',
+                                theme: 'Cura piante',
+                                title: 'Annaffiare rose',
+                                content: 'Annaffiare rose e lavanda nel pomeriggio. Aggiungere fertilizzante.',
+                                images: [],
+                                reminderDateTime: '',
+                                reminderEnabled: false,
+                                completed: false
+                            },
+                            {
+                                id: 3,
+                                date: '15/02/2026',
+                                category: 'Programmi ai',
+                                theme: 'Machine Learning',
+                                title: 'Studiare Neural Networks',
+                                content: 'Completare il corso su neural networks e implementare un modello di esempio.',
+                                images: [],
+                                reminderDateTime: '15/02/2026 10:00',
+                                reminderEnabled: true,
+                                completed: false
+                            }
+                        ]);
+                    }
+                } catch (error) {
+                    console.error('❌ Errore caricamento note:', error);
+                }
+            }, []);
+
+            // Salva note in localStorage ogni volta che cambiano
+            const isInitialLoad = useRef(true);
+            useEffect(() => {
+                if (isInitialLoad.current) {
+                    isInitialLoad.current = false;
+                    return;
+                }
+                try {
+                    localStorage.setItem('notesAppData', JSON.stringify(notes));
+                    console.log('💾 Note salvate automaticamente:', notes.length);
+                } catch (error) {
+                    console.error('❌ Errore salvataggio note:', error);
+                    alert('Attenzione: impossibile salvare le note. Spazio insufficiente?');
+                }
+            }, [notes]);
+
+            // Salva tema
+            useEffect(() => {
+                localStorage.setItem('notesAppTheme', theme);
+                console.log('🎨 Tema salvato:', theme);
+            }, [theme]);
+
+            // Salva stile
+            useEffect(() => {
+                localStorage.setItem('notesAppStyle', style);
+                console.log('🎨 Stile salvato:', style);
+            }, [style]);
+
+            // Salva e applica font
+            useEffect(() => {
+                localStorage.setItem('notesAppFont', appFont);
+                const fontFamily = fontOptions[appFont] ? fontOptions[appFont].family : fontOptions.system.family;
+                document.body.style.fontFamily = fontFamily;
+                console.log('🔠 Font salvato:', appFont);
+            }, [appFont]);
+
+            // Salva e applica dimensione testo
+            useEffect(() => {
+                localStorage.setItem('notesAppTextSize', textSize);
+                document.body.classList.remove('text-grande', 'text-molto-grande');
+                if (textSize !== 'normale') {
+                    document.body.classList.add('text-' + textSize);
+                }
+            }, [textSize]);
+
+            // Salva categorie
+            useEffect(() => {
+                localStorage.setItem('notesAppCategories', JSON.stringify(categories));
+                console.log('📁 Categorie salvate:', categories.length);
+            }, [categories]);
+
+            const toggleTheme = () => {
+                const newTheme = theme === 'light' ? 'dark' : 'light';
+                setTheme(newTheme);
+                document.body.className = newTheme;
+            };
+
+            const addNote = () => {
+                setEditingNote(null);
+                setFormData({
+                    date: new Date().toLocaleDateString('it-IT'),
+                    category: categories[0],
+                    theme: '',
+                    title: '',
+                    content: '',
+                    images: [],
+                    attachments: [],
+                    reminderDateTime: '',
+                    reminderEnabled: false,
+                    reminderRingtoneUri: localStorage.getItem('notesAppRingtoneUri') || '',
+                    completed: false
+                });
+                setShowAddEdit(true);
+            };
+
+            const editNote = (note) => {
+                setEditingNote(note);
+                setFormData({ ...note });
+                setShowAddEdit(true);
+            };
+
+            const saveNote = () => {
+                if (!formData.title.trim()) {
+                    alert('Inserisci un titolo!');
+                    return;
+                }
+
+                let savedNoteId;
+                if (editingNote) {
+                    savedNoteId = editingNote.id;
+                    setNotes(notes.map(n => n.id === editingNote.id ? { ...formData, id: n.id } : n));
+                } else {
+                    savedNoteId = Date.now();
+                    setNotes([...notes, { ...formData, id: savedNoteId }]);
+                }
+
+                // Programma notifica nativa per il promemoria (funziona anche ad app chiusa)
+                if (formData.reminderEnabled && formData.reminderDateTime) {
+                    scheduleNativeReminder(
+                        savedNoteId,
+                        formData.title,
+                        formData.content,
+                        formData.reminderDateTime,
+                        formData.reminderRingtoneUri || reminderRingtoneUri || ''
+                    );
+                } else {
+                    // Se il promemoria è stato disattivato, cancella la notifica nativa
+                    cancelNativeReminder(savedNoteId);
+                }
+
+                setShowAddEdit(false);
+            };
+
+            const deleteNote = () => {
+                if (editingNote && confirm('Sei sicuro di voler eliminare questa nota?')) {
+                    // Cancella anche la notifica nativa se presente
+                    cancelNativeReminder(editingNote.id);
+                    setNotes(notes.filter(n => n.id !== editingNote.id));
+                    setShowAddEdit(false);
+                }
+            };
+
+            const duplicateNote = () => {
+                if (!confirm('Vuoi duplicare questa nota?\n\nVerrà creata una copia identica che potrai modificare (es. cambiare la data).')) return;
+                const newId = Date.now();
+                const newNote = { ...formData, id: newId };
+                setNotes(prev => [...prev, newNote]);
+                setEditingNote({ ...newNote });
+                setFormData({ ...newNote });
+                // La modale rimane aperta per modificare la data
+            };
+
+            const toggleCompleted = (id) => {
+                setNotes(notes.map(n => n.id === id ? { ...n, completed: !n.completed } : n));
+            };
+
+            const takePhoto = () => {
+                // Usa plugin Cordova Camera se disponibile (apre SOLO la fotocamera)
+                if (window.navigator && navigator.camera && navigator.camera.getPicture) {
+                    navigator.camera.getPicture(
+                        (imageData) => {
+                            console.log('📸 Foto scattata con fotocamera nativa');
+                            const imgSrc = 'data:image/jpeg;base64,' + imageData;
+                            setFormData(prev => ({
+                                ...prev,
+                                images: [...prev.images, imgSrc]
+                            }));
+                            console.log(`✅ Foto aggiunta (${Math.round(imageData.length/1024)}KB)`);
+                        },
+                        (error) => {
+                            if (error !== 'Camera cancelled.' && error !== 'No Image Selected') {
+                                console.error('❌ Errore fotocamera:', error);
+                                alert('Errore fotocamera: ' + error);
+                            }
+                        },
+                        {
+                            quality: 80,
+                            destinationType: Camera.DestinationType.DATA_URL,
+                            sourceType: Camera.PictureSourceType.CAMERA,
+                            encodingType: Camera.EncodingType.JPEG,
+                            mediaType: Camera.MediaType.PICTURE,
+                            correctOrientation: true,
+                            targetWidth: 1280,
+                            targetHeight: 1280,
+                            saveToPhotoAlbum: false
+                        }
+                    );
+                } else {
+                    // Fallback per browser: usa input file con capture
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.capture = 'environment';
+                    input.style.display = 'none';
+
+                    input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            console.log('📸 Scatto foto in corso...');
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    images: [...prev.images, reader.result]
+                                }));
+                                console.log(`✅ Foto scattata (${Math.round(reader.result.length/1024)}KB)`);
+                            };
+                            reader.onerror = (error) => {
+                                console.error('❌ Errore scatto foto:', error);
+                                alert('Errore durante lo scatto della foto');
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                        document.body.removeChild(input);
+                    };
+
+                    document.body.appendChild(input);
+                    input.click();
+                }
+            };
+
+            const addFromGallery = () => {
+                // Usa Cordova Camera Plugin per la galleria se disponibile
+                if (window.navigator && navigator.camera && navigator.camera.getPicture) {
+                    navigator.camera.getPicture(
+                        (imageData) => {
+                            console.log('🖼️ Immagine da galleria via plugin nativo');
+                            const imgSrc = 'data:image/jpeg;base64,' + imageData;
+                            setFormData(prev => ({
+                                ...prev,
+                                images: [...prev.images, imgSrc]
+                            }));
+                        },
+                        (error) => {
+                            if (error !== 'Camera cancelled.' && error !== 'No Image Selected' && error !== 'Selection cancelled.') {
+                                console.error('❌ Errore galleria:', error);
+                                alert('Errore galleria: ' + error);
+                            }
+                        },
+                        {
+                            quality: 80,
+                            destinationType: Camera.DestinationType.DATA_URL,
+                            sourceType: Camera.PictureSourceType.PHOTOLIBRARY,
+                            encodingType: Camera.EncodingType.JPEG,
+                            mediaType: Camera.MediaType.PICTURE,
+                            correctOrientation: true,
+                            targetWidth: 1280,
+                            targetHeight: 1280
+                        }
+                    );
+                } else {
+                    // Fallback per browser
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.multiple = true;
+                    input.style.display = 'none';
+
+                    input.onchange = (e) => {
+                        const files = Array.from(e.target.files);
+                        if (files.length > 0) {
+                            console.log(`📸 Caricamento di ${files.length} immagini dalla galleria...`);
+                            let loadedCount = 0;
+                            const newImages = [];
+
+                            files.forEach(file => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    newImages.push(reader.result);
+                                    loadedCount++;
+                                    if (loadedCount === files.length) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            images: [...prev.images, ...newImages]
+                                        }));
+                                    }
+                                };
+                                reader.onerror = (error) => {
+                                    console.error('❌ Errore caricamento immagine:', error);
+                                };
+                                reader.readAsDataURL(file);
+                            });
+                        }
+                        document.body.removeChild(input);
+                    };
+
+                    document.body.appendChild(input);
+                    input.click();
+                }
+            };
+
+            const removeImage = (index) => {
+                setFormData({
+                    ...formData,
+                    images: formData.images.filter((_, i) => i !== index)
+                });
+            };
+
+            const addAttachment = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.multiple = true;
+                input.style.display = 'none';
+                input.onchange = (e) => {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) { document.body.removeChild(input); return; }
+                    let remaining = files.length;
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            setFormData(prev => ({
+                                ...prev,
+                                attachments: [...(prev.attachments || []), {
+                                    name: file.name,
+                                    type: file.type,
+                                    size: file.size,
+                                    data: reader.result
+                                }]
+                            }));
+                            remaining--;
+                            if (remaining === 0) { console.log(`✅ ${files.length} allegati aggiunti`); }
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    document.body.removeChild(input);
+                };
+                document.body.appendChild(input);
+                input.click();
+            };
+
+            const removeAttachment = (index) => {
+                setFormData({
+                    ...formData,
+                    attachments: (formData.attachments || []).filter((_, i) => i !== index)
+                });
+            };
+
+            const openAttachment = (att) => {
+                // Immagini → lightbox esistente
+                if (att.type && att.type.startsWith('image/')) {
+                    setLightboxSrc(att.data);
+                    return;
+                }
+                // PDF → modal con iframe (nativo in Chrome WebView)
+                if (att.type === 'application/pdf') {
+                    setPdfViewerSrc(att.data);
+                    return;
+                }
+                // Altri file → scrivi in cacheDir e apri con intent Android
+                if (window.cordova && cordova.file) {
+                    try {
+                        const base64 = att.data.includes(',') ? att.data.split(',')[1] : att.data;
+                        const byteStr = atob(base64);
+                        const ab = new ArrayBuffer(byteStr.length);
+                        const ia = new Uint8Array(ab);
+                        for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+                        const blob = new Blob([ab], { type: att.type || 'application/octet-stream' });
+                        window.resolveLocalFileSystemURL(cordova.file.cacheDirectory, (dirEntry) => {
+                            dirEntry.getFile(att.name, { create: true, exclusive: false }, (fileEntry) => {
+                                fileEntry.createWriter((writer) => {
+                                    writer.onwriteend = () => window.open(fileEntry.toURL(), '_system');
+                                    writer.onerror = () => alert('Impossibile aprire il file');
+                                    writer.write(blob);
+                                });
+                            }, () => alert('Errore accesso file system'));
+                        });
+                    } catch(e) { alert('Errore apertura: ' + e.message); }
+                } else {
+                    // Fallback browser: scarica
+                    const a = document.createElement('a');
+                    a.href = att.data;
+                    a.download = att.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+            };
+
+            const formatFileSize = (bytes) => {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(1) + ' MB';
+            };
+
+            const getFileIcon = (type) => {
+                if (!type) return '📎';
+                if (type.startsWith('image/')) return '🖼️';
+                if (type === 'application/pdf') return '📄';
+                if (type.includes('word') || type.includes('document')) return '📝';
+                if (type.includes('excel') || type.includes('spreadsheet')) return '📊';
+                if (type.includes('presentation') || type.includes('powerpoint')) return '📊';
+                if (type.includes('text/')) return '📃';
+                return '📎';
+            };
+
+            // Converte data italiana dd/mm/yyyy in timestamp per ordinamento
+            const parseItalianDate = (dateStr) => {
+                if (!dateStr) return 0;
+                const parts = dateStr.split('/');
+                if (parts.length !== 3) return 0;
+                const [day, month, year] = parts.map(Number);
+                return new Date(year, month - 1, day).getTime();
+            };
+
+            const getFilteredNotes = () => {
+                let filtered = notes;
+
+                if (selectedFilter === 'Tutto') {
+                    filtered = notes;
+                } else if (selectedFilter === 'Da Completare') {
+                    filtered = notes.filter(n => !n.completed);
+                } else if (selectedFilter === 'Completate') {
+                    filtered = notes.filter(n => n.completed);
+                } else if (selectedFilter === 'Cerca...') {
+                    filtered = notes;
+                } else {
+                    filtered = notes.filter(n => n.category === selectedFilter);
+                }
+
+                if (currentView === 'search' && searchQuery.trim()) {
+                    const query = searchQuery.toLowerCase();
+                    filtered = filtered.filter(n =>
+                        (n.title && n.title.toLowerCase().includes(query)) ||
+                        (n.content && n.content.toLowerCase().includes(query)) ||
+                        (n.category && n.category.toLowerCase().includes(query)) ||
+                        (n.theme && n.theme.toLowerCase().includes(query)) ||
+                        (n.date && n.date.includes(searchQuery))
+                    );
+                }
+
+                // Applica ordinamento in base a sortMode
+                if (sortMode === 'category') {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const todayTime = today.getTime();
+
+                    // Per ogni categoria: trova la data futura più vicina a oggi (o, se assente, la passata più recente)
+                    const catSortKey = {};
+                    filtered.forEach(note => {
+                        const cat = note.category || '';
+                        const noteTime = parseItalianDate(note.date);
+                        if (!catSortKey[cat]) catSortKey[cat] = { future: null, past: null };
+                        if (noteTime >= todayTime) {
+                            // Data futura o oggi: prendi la più vicina (minima)
+                            if (catSortKey[cat].future === null || noteTime < catSortKey[cat].future) {
+                                catSortKey[cat].future = noteTime;
+                            }
+                        } else {
+                            // Data passata: prendi la più recente (massima)
+                            if (catSortKey[cat].past === null || noteTime > catSortKey[cat].past) {
+                                catSortKey[cat].past = noteTime;
+                            }
+                        }
+                    });
+
+                    // Chiave di ordinamento: future ascending, poi past descending (con offset alto)
+                    const getSortKey = (cat) => {
+                        const k = catSortKey[cat];
+                        if (!k) return Infinity;
+                        if (k.future !== null) return k.future;          // future: ordine crescente da oggi
+                        if (k.past !== null) return k.past + 1e15;       // past: dopo tutte le future, ordine crescente
+                        return Infinity;
+                    };
+
+                    return [...filtered].sort((a, b) => {
+                        const catA = a.category || '';
+                        const catB = b.category || '';
+                        const keyA = getSortKey(catA);
+                        const keyB = getSortKey(catB);
+                        // Prima per chiave categoria (futuro crescente → passato)
+                        if (keyA !== keyB) return keyA - keyB;
+                        // Stessa chiave: A-Z
+                        if (catA !== catB) return catA.localeCompare(catB, 'it');
+                        // Stessa categoria: sotto-ordinamento scelto
+                        if (categorySortBy === 'theme') {
+                            return (a.theme || '').localeCompare(b.theme || '', 'it');
+                        } else if (categorySortBy === 'title') {
+                            return (a.title || '').localeCompare(b.title || '', 'it');
+                        } else {
+                            // Date crescenti: dalla più vicina a oggi verso il futuro
+                            return parseItalianDate(a.date) - parseItalianDate(b.date);
+                        }
+                    });
+                } else if (sortMode === 'alphabetical') {
+                    return [...filtered].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'it'));
+                } else {
+                    // Default: ordina per data decrescente (più recenti prima)
+                    return [...filtered].sort((a, b) => parseItalianDate(b.date) - parseItalianDate(a.date));
+                }
+            };
+
+            const sortByCategory = () => {
+                setSortMode('category');
+                setShowMenu(false);
+            };
+
+            const sortAlphabetically = () => {
+                setSortMode('alphabetical');
+                setShowMenu(false);
+            };
+
+            const saveToFile = (dirPath, filename, jsonString, dirLabel) => {
+                window.resolveLocalFileSystemURL(dirPath, function(dirEntry) {
+                    dirEntry.getFile(filename, { create: true, exclusive: false }, function(fileEntry) {
+                        fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.onwriteend = function() {
+                                alert('✅ Backup salvato!\n\nFile: ' + filename + '\n📂 Posizione: ' + dirLabel + '\n\nPuoi trovarlo nel gestore file del telefono.');
+                            };
+                            fileWriter.onerror = function(e) {
+                                console.error('Errore scrittura:', e);
+                                copyToClipboardBackup(jsonString, filename);
+                            };
+                            var blob = new Blob([jsonString], { type: 'application/json' });
+                            fileWriter.write(blob);
+                        }, function(err) {
+                            console.error('Errore writer:', err);
+                            copyToClipboardBackup(jsonString, filename);
+                        });
+                    }, function(err) {
+                        console.error('Errore getFile:', err);
+                        copyToClipboardBackup(jsonString, filename);
+                    });
+                }, function(err) {
+                    console.error('Errore accesso dir:', err);
+                    copyToClipboardBackup(jsonString, filename);
+                });
+            };
+
+            const writeFileToDir = (dirPath, filename, jsonString, onSuccess, onError) => {
+                window.resolveLocalFileSystemURL(dirPath, function(dirEntry) {
+                    dirEntry.getFile(filename, { create: true, exclusive: false }, function(fileEntry) {
+                        fileEntry.createWriter(function(fileWriter) {
+                            fileWriter.onwriteend = function() {
+                                onSuccess(fileEntry);
+                            };
+                            fileWriter.onerror = onError;
+                            var blob = new Blob([jsonString], { type: 'application/json' });
+                            fileWriter.write(blob);
+                        }, onError);
+                    }, onError);
+                }, onError);
+            };
+
+            const exportData = () => {
+                try {
+                    const data = {
+                        notes,
+                        categories,
+                        theme,
+                        style,
+                        appFont,
+                        textSize,
+                        exportDate: new Date().toLocaleString('it-IT'),
+                        version: '5.4'
+                    };
+
+                    const jsonString = JSON.stringify(data, null, 2);
+                    const filename = `lemienote_backup_${Date.now()}.json`;
+
+                    setShowMenu(false);
+
+                    const isCordova = window.cordova && window.resolveLocalFileSystemURL && cordova.file;
+
+                    if (isCordova) {
+                        // TENTATIVO 1: Cartella Download pubblica
+                        const downloadPath = cordova.file.externalRootDirectory
+                            ? cordova.file.externalRootDirectory + 'Download'
+                            : null;
+
+                        const saveToAppDir = () => {
+                            // TENTATIVO 2: Directory dati app
+                            const appDir = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
+                            writeFileToDir(appDir, filename, jsonString,
+                                function(fileEntry) {
+                                    alert(
+                                        '✅ Backup salvato!\n\n' +
+                                        '📄 ' + filename + '\n\n' +
+                                        '⚠️ Il file è nei dati dell\'app.\n' +
+                                        'Per accedervi facilmente, tocca "Condividi" la prossima volta.'
+                                    );
+                                },
+                                function() { copyToClipboardBackup(jsonString, filename); }
+                            );
+                        };
+
+                        if (downloadPath) {
+                            // Prova a creare la cartella Download se non esiste
+                            window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function(rootEntry) {
+                                rootEntry.getDirectory('Download', { create: true }, function(downloadDir) {
+                                    downloadDir.getFile(filename, { create: true, exclusive: false }, function(fileEntry) {
+                                        fileEntry.createWriter(function(fileWriter) {
+                                            fileWriter.onwriteend = function() {
+                                                alert(
+                                                    '✅ Backup salvato nella cartella Download!\n\n' +
+                                                    '📄 ' + filename + '\n\n' +
+                                                    '💡 Per trovarlo:\n' +
+                                                    'Apri Gestore File → Download'
+                                                );
+                                            };
+                                            fileWriter.onerror = function() { saveToAppDir(); };
+                                            var blob = new Blob([jsonString], { type: 'application/json' });
+                                            fileWriter.write(blob);
+                                        }, function() { saveToAppDir(); });
+                                    }, function() { saveToAppDir(); });
+                                }, function() { saveToAppDir(); });
+                            }, function() { saveToAppDir(); });
+                        } else {
+                            saveToAppDir();
+                        }
+
+                    } else {
+                        // Browser: Blob URL download
+                        const blob = new Blob([jsonString], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => {
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                        }, 200);
+                        setTimeout(() => {
+                            alert('✅ Backup scaricato!\n\nControlla la cartella Download.');
+                        }, 300);
+                    }
+                } catch (error) {
+                    console.error('Errore export:', error);
+                    alert('❌ Errore: ' + error.message);
+                }
+            };
+
+            const exportCategoryData = (categoryName) => {
+                try {
+                    const categoryNotes = notes.filter(n => n.category === categoryName);
+                    const data = {
+                        notes: categoryNotes,
+                        categories: [categoryName],
+                        exportDate: new Date().toLocaleString('it-IT'),
+                        exportedCategory: categoryName,
+                        version: '5.4'
+                    };
+                    const jsonString = JSON.stringify(data, null, 2);
+                    const safeName = categoryName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+                    const filename = `lemienote_${safeName}_${Date.now()}.json`;
+
+                    setShowExportCategory(false);
+
+                    const isCordova = window.cordova && window.resolveLocalFileSystemURL && cordova.file;
+
+                    if (isCordova) {
+                        const saveToAppDir = () => {
+                            const appDir = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
+                            writeFileToDir(appDir, filename, jsonString,
+                                function() {
+                                    alert('✅ Categoria "' + categoryName + '" esportata!\n\n📄 ' + filename);
+                                },
+                                function() { copyToClipboardBackup(jsonString, filename); }
+                            );
+                        };
+
+                        if (cordova.file.externalRootDirectory) {
+                            window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function(rootEntry) {
+                                rootEntry.getDirectory('Download', { create: true }, function(downloadDir) {
+                                    downloadDir.getFile(filename, { create: true, exclusive: false }, function(fileEntry) {
+                                        fileEntry.createWriter(function(fileWriter) {
+                                            fileWriter.onwriteend = function() {
+                                                alert('✅ Categoria "' + categoryName + '" esportata!\n\n📄 ' + filename + '\n\n💡 Apri Gestore File → Download');
+                                            };
+                                            fileWriter.onerror = function() { saveToAppDir(); };
+                                            var blob = new Blob([jsonString], { type: 'application/json' });
+                                            fileWriter.write(blob);
+                                        }, function() { saveToAppDir(); });
+                                    }, function() { saveToAppDir(); });
+                                }, function() { saveToAppDir(); });
+                            }, function() { saveToAppDir(); });
+                        } else {
+                            saveToAppDir();
+                        }
+                    } else {
+                        const blob = new Blob([jsonString], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+                        setTimeout(() => { alert('✅ Categoria "' + categoryName + '" esportata!\n\nControlla la cartella Download.'); }, 300);
+                    }
+                } catch (error) {
+                    alert('❌ Errore: ' + error.message);
+                }
+            };
+
+            const copyToClipboardBackup = (jsonString, filename) => {
+                alert('⚠️ Impossibile salvare il file nella memoria.\n\nI dati verranno copiati negli appunti.\nIncollali in un\'app di note o file di testo.');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(jsonString).then(() => {
+                        alert('📋 Dati copiati negli appunti!\n\nOra apri un\'app di testo e incolla per salvare il backup.');
+                    }).catch(() => {
+                        legacyCopy(jsonString);
+                    });
+                } else {
+                    legacyCopy(jsonString);
+                }
+            };
+
+            const legacyCopy = (text) => {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    alert('📋 Dati copiati negli appunti!');
+                } catch (e) {
+                    // Ultimo fallback: mostra i dati in un prompt
+                    alert('⚠️ Impossibile copiare automaticamente.\n\nI dati verranno mostrati nella prossima finestra.\nSeleziona tutto e copia manualmente.');
+                    prompt('Copia questi dati:', text.substring(0, 2000) + '...');
+                }
+                document.body.removeChild(textarea);
+            };
+
+            const importData = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'application/json';
+                input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            try {
+                                const data = JSON.parse(e.target.result);
+                                if (data.notes) setNotes(data.notes);
+                                if (data.categories) setCategories(data.categories);
+                                if (data.theme) setTheme(data.theme);
+                                if (data.style) setStyle(data.style);
+                                if (data.appFont) setAppFont(data.appFont);
+                                if (data.textSize) setTextSize(data.textSize);
+                                alert('Dati importati con successo!');
+                            } catch (error) {
+                                alert('Errore nel file: ' + error.message);
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                };
+                input.click();
+                setShowMenu(false);
+            };
+
+            const setupPin = () => {
+                const pin = prompt('Inserisci un PIN (4-6 cifre):');
+                if (pin && pin.length >= 4 && /^\d+$/.test(pin)) {
+                    try {
+                        // Salva il PIN
+                        localStorage.setItem('notesAppPin', pin);
+                        setAppPin(pin);
+                        setPinLocked(false);
+                        
+                        // Verifica che sia stato salvato
+                        const saved = localStorage.getItem('notesAppPin');
+                        if (saved === pin) {
+                            alert('✅ PIN impostato con successo!\n\nPIN: ' + pin + '\n\n⚠️ Ricordalo! Servirà al prossimo avvio.');
+                        } else {
+                            alert('⚠️ PIN impostato ma potrebbero esserci problemi con il salvataggio.\n\nPIN: ' + pin + '\n\nAnnotalo!');
+                        }
+                    } catch (e) {
+                        alert('❌ Errore nel salvare il PIN: ' + e.message);
+                    }
+                } else if (pin) {
+                    alert('❌ PIN non valido!\n\nDeve contenere solo numeri (0-9) e essere lungo 4-6 cifre.\n\nEsempio: 1234');
+                }
+                setShowMenu(false);
+            };
+
+            const unlockApp = () => {
+                if (pinInput === appPin) {
+                    setPinLocked(false);
+                    setPinInput('');
+                } else {
+                    alert('❌ PIN errato! Riprova.');
+                    setPinInput('');
+                }
+            };
+
+            const removePin = () => {
+                if (confirm('Vuoi rimuovere il PIN di protezione?')) {
+                    setAppPin('');
+                    localStorage.removeItem('notesAppPin');
+                    setPinLocked(false);
+                    setShowMenu(false);
+                    alert('✅ PIN rimosso! L\'app non sarà più protetta.');
+                }
+            };
+
+            const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            const highlightText = (text, query) => {
+                if (!query.trim() || !text) return text || '';
+                try {
+                    const escaped = escapeRegex(query);
+                    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+                    return parts.map((part, i) =>
+                        part.toLowerCase() === query.toLowerCase()
+                            ? <span key={i} className="highlight">{part}</span>
+                            : part
+                    );
+                } catch (e) {
+                    return text;
+                }
+            };
+
+            // Funzioni calendario (settimana inizia da Lunedì)
+            const getDaysInMonth = (date) => {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                // Converti da DOM=0 a LUN=0: (getDay()+6)%7
+                const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+                const days = [];
+                const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+                for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                    days.push({
+                        day: prevMonthLastDay - i,
+                        isCurrentMonth: false,
+                        date: new Date(year, month - 1, prevMonthLastDay - i)
+                    });
+                }
+
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push({
+                        day: i,
+                        isCurrentMonth: true,
+                        date: new Date(year, month, i)
+                    });
+                }
+
+                const remainingDays = 42 - days.length;
+                for (let i = 1; i <= remainingDays; i++) {
+                    days.push({
+                        day: i,
+                        isCurrentMonth: false,
+                        date: new Date(year, month + 1, i)
+                    });
+                }
+
+                return days;
+            };
+
+            const isToday = (date) => {
+                const today = new Date();
+                return date.toDateString() === today.toDateString();
+            };
+
+            const isSameDay = (date1, date2) => {
+                return date1.toDateString() === date2.toDateString();
+            };
+
+            const hasNotesOnDate = (date) => {
+                const dateStr = date.toLocaleDateString('it-IT');
+                return notes.some(n => n.date === dateStr);
+            };
+
+            const getNotesForDate = (date) => {
+                const dateStr = date.toLocaleDateString('it-IT');
+                return notes.filter(n => n.date === dateStr);
+            };
+
+            const changeMonth = (direction) => {
+                const newMonth = new Date(currentMonth);
+                newMonth.setMonth(currentMonth.getMonth() + direction);
+                setCurrentMonth(newMonth);
+            };
+
+            const changePickerMonth = (direction) => {
+                const newMonth = new Date(pickerMonth);
+                newMonth.setMonth(pickerMonth.getMonth() + direction);
+                setPickerMonth(newMonth);
+            };
+
+            const selectDateFromPicker = (date) => {
+                setFormData({ ...formData, date: date.toLocaleDateString('it-IT') });
+                setShowDatePicker(false);
+            };
+
+            const selectDateTimeForReminder = (date, time) => {
+                const dateStr = date.toLocaleDateString('it-IT');
+                setFormData({ 
+                    ...formData, 
+                    reminderDateTime: `${dateStr} ${time}`
+                });
+                setShowReminderPicker(false);
+            };
+
+            const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                               'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+
+            const filteredNotes = getFilteredNotes();
+
+            const filterOptions = [
+                'Tutto',
+                'Da Completare',
+                'Completate',
+                'Cerca...',
+                '--- Categorie ---',
+                ...[...categories].sort((a, b) => a.localeCompare(b, 'it'))
+            ];
+
+            const styleNames = {
+                modern: 'Moderno 🎨',
+                nature: 'Natura 🌿',
+                ocean: 'Oceano 🌊',
+                sunset: 'Tramonto 🌅',
+                minimal: 'Minimale ⚪'
+            };
+
+            const fontOptions = {
+                system: { name: 'Sans Serif', family: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
+                serif: { name: 'Serif (Georgia)', family: "Georgia, 'Times New Roman', Times, serif" },
+                mono: { name: 'Monospace', family: "'Courier New', Courier, monospace" }
+            };
+
+            // PIN Screen
+            if (pinLocked && appPin) {
+                return (
+                    <div className="phone-container">
+                        <div className="phone-screen">
+                            <div className="pin-screen">
+                                <div className="pin-icon">🔒</div>
+                                <h2>Inserisci PIN</h2>
+                                <input
+                                    type="tel"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    className="pin-input"
+                                    value={pinInput}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '');
+                                        setPinInput(val);
+                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') unlockApp(); }}
+                                    maxLength="6"
+                                    placeholder="••••"
+                                    autoFocus
+                                    style={{
+                                        WebkitTextSecurity: 'disc',
+                                        letterSpacing: '8px',
+                                        fontSize: '24px',
+                                        textAlign: 'center'
+                                    }}
+                                />
+                                <button className={`btn btn-primary ${style}`} onClick={unlockApp} style={{marginTop: '16px', padding: '14px 40px', fontSize: '18px'}}>
+                                    🔓 Sblocca
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="phone-container">
+                    <div className="phone-screen">
+                        {/* Toolbar */}
+                        <div className={`toolbar ${style}`}>
+                            <h1>Le Mie Note</h1>
+                            <div className="toolbar-actions">
+                                <div className="dropdown">
+                                    <button className="menu-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
+                                    {showMenu && <div className="dropdown-overlay show" onClick={() => setShowMenu(false)}></div>}
+                                    <div className={`dropdown-content ${showMenu ? 'show' : ''}`}>
+                                        <div className="dropdown-item" onClick={sortAlphabetically}>
+                                            🔤 Ordina alfabeticamente
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('date'); setShowMenu(false); }}>
+                                            📁📅 Categoria → Data
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('theme'); setShowMenu(false); }}>
+                                            📁📝 Categoria → Tema
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('title'); setShowMenu(false); }}>
+                                            📁🔤 Categoria → Titolo
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setShowStyleSelector(true); setShowMenu(false); }}>
+                                            🎨 Cambia stile
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setShowFontSelector(true); setShowMenu(false); }}>
+                                            🔠 Cambia font
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setShowTextSizeSelector(true); setShowMenu(false); }}>
+                                            🔍 Dimensione testo
+                                        </div>
+                                        <div className="dropdown-item" onClick={toggleTheme}>
+                                            {theme === 'light' ? '🌙' : '☀️'} Cambia tema
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setShowCategoryManager(true); setShowMenu(false); }}>
+                                            📂 Gestisci categorie
+                                        </div>
+                                        <div className="dropdown-item" onClick={exportData}>
+                                            💾 Esporta dati
+                                        </div>
+                                        <div className="dropdown-item" onClick={() => { setShowExportCategory(true); setShowMenu(false); }}>
+                                            📤 Esporta categoria...
+                                        </div>
+                                        <div className="dropdown-item" onClick={importData}>
+                                            📥 Importa dati
+                                        </div>
+                                        {!appPin ? (
+                                            <div className="dropdown-item" onClick={setupPin}>
+                                                🔒 Imposta PIN
+                                            </div>
+                                        ) : (
+                                            <div className="dropdown-item" onClick={removePin}>
+                                                🔓 Rimuovi PIN
+                                            </div>
+                                        )}
+                                        <div className="dropdown-item" onClick={() => { setShowHelp(true); setShowMenu(false); }}>
+                                            ❓ Aiuto
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Content Area */}
+                        <div className="content-area" ref={contentAreaRef}>
+                            {currentView === 'notes' ? (
+                                <>
+                                    {/* Filtro con BORDO SPESSO come screenshot */}
+                                    <div className="filter-container">
+                                        <div className="filter-label">Cosa vuoi vedere?</div>
+                                        <select 
+                                            className={`filter-select ${style}`}
+                                            value={selectedFilter}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === 'Cerca...') {
+                                                    setCurrentView('search');
+                                                } else {
+                                                    setSelectedFilter(val);
+                                                }
+                                            }}
+                                        >
+                                            {filterOptions.map(opt => (
+                                                <option key={opt} disabled={opt === '--- Categorie ---'}>{opt}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="notes-container">
+                                        {filteredNotes.length === 0 ? (
+                                            <div className="empty-state">
+                                                <div className="empty-state-icon">📝</div>
+                                                <h3>Nessuna nota</h3>
+                                                <p>Tocca il pulsante + per creare una nuova nota</p>
+                                            </div>
+                                        ) : (
+                                            filteredNotes.map(note => (
+                                                <div key={note.id} className="note-card" onClick={() => editNote(note)}>
+                                                    <div className="note-header">
+                                                        <span className="note-date">{note.date}</span>
+                                                        <span className={`note-category ${style}`}>{note.category}</span>
+                                                    </div>
+                                                    {note.theme && (
+                                                        <div className="note-theme">Tema: {note.theme}</div>
+                                                    )}
+                                                    <div className={`note-title ${note.completed ? 'completed' : ''}`}>
+                                                        {note.title}
+                                                    </div>
+                                                    <div className="note-content">
+                                                        {note.content.length > 100 ? note.content.substring(0, 100) + '...' : note.content}
+                                                    </div>
+                                                    {note.images && note.images.length > 0 && (
+                                                        <div className="note-images">
+                                                            {note.images.slice(0, 3).map((img, i) => (
+                                                                <img key={i} src={img} alt={`Foto ${i+1}`} className="note-image" onClick={(e) => { e.stopPropagation(); setLightboxSrc(img); }} style={{cursor:'pointer'}} />
+                                                            ))}
+                                                            {note.images.length > 3 && (
+                                                                <div className="note-image" style={{background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                                                    +{note.images.length - 3}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {note.attachments && note.attachments.length > 0 && (
+                                                        <div style={{display:'flex', flexWrap:'wrap', gap:'4px', marginTop:'6px'}}>
+                                                            {note.attachments.map((att, i) => (
+                                                                <span key={i} style={{fontSize:'11px', padding:'2px 8px', background:'#f0f0f0', borderRadius:'12px', color:'#555'}}>
+                                                                    {getFileIcon(att.type)} {att.name.length > 20 ? att.name.slice(0,18)+'…' : att.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {note.reminderEnabled && (
+                                                        <div className="reminder-badge">
+                                                            ⏰ {note.reminderDateTime}
+                                                        </div>
+                                                    )}
+                                                    <div className="note-checkbox" onClick={(e) => e.stopPropagation()}>
+                                                        <input 
+                                                            type="checkbox" 
+                                                            checked={note.completed}
+                                                            onChange={() => toggleCompleted(note.id)}
+                                                        />
+                                                        <span>Completata</span>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
+                            ) : currentView === 'search' ? (
+                                <>
+                                    <input 
+                                        type="text"
+                                        className={`search-input ${style}`}
+                                        placeholder="Cerca in tutte le note..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <div className="notes-container">
+                                        {!searchQuery.trim() ? (
+                                            <div className="empty-state">
+                                                <div className="empty-state-icon">🔍</div>
+                                                <h3>Cerca nelle Note</h3>
+                                                <p>Inizia a digitare per cercare</p>
+                                            </div>
+                                        ) : filteredNotes.length === 0 ? (
+                                            <div className="empty-state">
+                                                <div className="empty-state-icon">❌</div>
+                                                <h3>Nessun risultato</h3>
+                                                <p>Nessuna nota trovata per "{searchQuery}"</p>
+                                            </div>
+                                        ) : (
+                                            filteredNotes.map(note => (
+                                                <div key={note.id} className="note-card" onClick={() => editNote(note)}>
+                                                    <div className="note-header">
+                                                        <span className="note-date">{note.date}</span>
+                                                        <span className={`note-category ${style}`}>{note.category}</span>
+                                                    </div>
+                                                    {note.theme && (
+                                                        <div className="note-theme">Tema: {highlightText(note.theme, searchQuery)}</div>
+                                                    )}
+                                                    <div className={`note-title ${note.completed ? 'completed' : ''}`}>
+                                                        {highlightText(note.title, searchQuery)}
+                                                    </div>
+                                                    <div className="note-content">
+                                                        {highlightText(
+                                                            note.content.length > 100 ? note.content.substring(0, 100) + '...' : note.content,
+                                                            searchQuery
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </>
+                            ) : currentView === 'calendar' ? (
+                                <div className="calendar-container">
+                                    <div className={`calendar-header ${style}`}>
+                                        <div className="calendar-nav">
+                                            <button onClick={() => changeMonth(-1)}>◀</button>
+                                        </div>
+                                        <div className="calendar-month">
+                                            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                                        </div>
+                                        <div className="calendar-nav">
+                                            <button onClick={() => changeMonth(1)}>▶</button>
+                                        </div>
+                                    </div>
+
+                                    <div className="calendar-grid">
+                                        {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+                                            <div key={day} className="calendar-day-header">{day}</div>
+                                        ))}
+                                        {getDaysInMonth(currentMonth).map((day, index) => (
+                                            <div
+                                                key={index}
+                                                className={`calendar-day ${style}
+                                                    ${!day.isCurrentMonth ? 'other-month' : ''} 
+                                                    ${isToday(day.date) ? 'today' : ''} 
+                                                    ${isSameDay(day.date, selectedCalendarDate) ? 'selected' : ''}
+                                                    ${hasNotesOnDate(day.date) ? 'has-notes' : ''}`}
+                                                onClick={() => {
+                                                    // Crea una nuova istanza Date per forzare il re-render
+                                                    const newDate = new Date(day.date.getTime());
+                                                    console.log('📅 Data selezionata:', newDate.toLocaleDateString('it-IT'));
+                                                    setSelectedCalendarDate(newDate);
+                                                }}
+                                            >
+                                                {day.day}
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className={`selected-date-header ${style}`}>
+                                        Impegni per il {selectedCalendarDate.toLocaleDateString('it-IT')}
+                                    </div>
+
+                                    <div className="notes-container">
+                                        {getNotesForDate(selectedCalendarDate).length === 0 ? (
+                                            <div className="empty-state">
+                                                <div className="empty-state-icon">🗓</div>
+                                                <h3>Nessun impegno</h3>
+                                                <p>Nessuna nota per questo giorno</p>
+                                            </div>
+                                        ) : (
+                                            getNotesForDate(selectedCalendarDate).map(note => (
+                                                <div key={note.id} className="note-card" onClick={() => editNote(note)}>
+                                                    <div className="note-header">
+                                                        <span className={`note-category ${style}`}>{note.category}</span>
+                                                    </div>
+                                                    {note.theme && (
+                                                        <div className="note-theme">Tema: {note.theme}</div>
+                                                    )}
+                                                    <div className={`note-title ${note.completed ? 'completed' : ''}`}>
+                                                        {note.title}
+                                                    </div>
+                                                    <div className="note-content">
+                                                        {note.content}
+                                                    </div>
+                                                    {note.reminderEnabled && (
+                                                        <div className="reminder-badge">
+                                                            ⏰ {note.reminderDateTime}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Pulsanti scroll veloce - visibili solo nella vista note con note presenti */}
+                        {currentView === 'notes' && filteredNotes.length > 4 && (
+                            <div style={{
+                                position: 'absolute',
+                                left: '12px',
+                                bottom: '84px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px',
+                                zIndex: 98
+                            }}>
+                                <button
+                                    style={{
+                                        width: '38px',
+                                        height: '38px',
+                                        borderRadius: '50%',
+                                        background: 'rgba(0,0,0,0.35)',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        touchAction: 'manipulation'
+                                    }}
+                                    onClick={() => contentAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                                    title="Vai in cima"
+                                >↑</button>
+                                <button
+                                    style={{
+                                        width: '38px',
+                                        height: '38px',
+                                        borderRadius: '50%',
+                                        background: 'rgba(0,0,0,0.35)',
+                                        color: 'white',
+                                        border: 'none',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        touchAction: 'manipulation'
+                                    }}
+                                    onClick={() => contentAreaRef.current?.scrollTo({ top: contentAreaRef.current.scrollHeight, behavior: 'smooth' })}
+                                    title="Vai in fondo"
+                                >↓</button>
+                            </div>
+                        )}
+
+                        {/* FAB - posizionato assoluto su phone-screen */}
+                        {(currentView === 'notes' || currentView === 'calendar') && (
+                            <button className={`fab ${style}`} onClick={() => {
+                                if (currentView === 'calendar') {
+                                    setEditingNote(null);
+                                    setFormData({
+                                        date: selectedCalendarDate.toLocaleDateString('it-IT'),
+                                        category: categories[0],
+                                        theme: '',
+                                        title: '',
+                                        content: '',
+                                        images: [],
+                                        reminderDateTime: '',
+                                        reminderEnabled: false,
+                                        reminderRingtoneUri: localStorage.getItem('notesAppRingtoneUri') || '',
+                                        completed: false
+                                    });
+                                    setShowAddEdit(true);
+                                } else {
+                                    addNote();
+                                }
+                            }}>+</button>
+                        )}
+
+                        {/* Bottom Navigation */}
+                        <div className="bottom-nav">
+                            <button
+                                className={`nav-item ${style} ${currentView === 'notes' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('notes')}
+                                title="Note"
+                            >
+                                <span>📝</span>
+                                <span className="nav-label">Note</span>
+                            </button>
+                            <button
+                                className={`nav-item ${style} ${currentView === 'search' ? 'active' : ''}`}
+                                onClick={() => { setCurrentView('search'); setSearchQuery(''); }}
+                                title="Cerca"
+                            >
+                                <span>🔍</span>
+                                <span className="nav-label">Cerca</span>
+                            </button>
+                            <button
+                                className={`nav-item ${style} ${currentView === 'calendar' ? 'active' : ''}`}
+                                onClick={() => setCurrentView('calendar')}
+                                title="Calendario"
+                            >
+                                <span className="cal-icon"><span className="cal-day">{new Date().getDate()}</span></span>
+                                <span className="nav-label">Calendario</span>
+                            </button>
+                        </div>
+
+                        {/* Modal Selezione Stile */}
+                        <div className={`modal ${showStyleSelector ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Scegli uno Stile</h2>
+                                    <button className="close-btn" onClick={() => setShowStyleSelector(false)}>×</button>
+                                </div>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px'}}>
+                                    {Object.keys(styleNames).map(styleName => (
+                                        <button
+                                            key={styleName}
+                                            className={`btn btn-primary ${styleName}`}
+                                            onClick={() => {
+                                                setStyle(styleName);
+                                                setShowStyleSelector(false);
+                                            }}
+                                            style={{padding: '20px'}}
+                                        >
+                                            {styleNames[styleName]}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Selezione Font */}
+                        <div className={`modal ${showFontSelector ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Scegli un Font</h2>
+                                    <button className="close-btn" onClick={() => setShowFontSelector(false)}>×</button>
+                                </div>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    {Object.keys(fontOptions).map(fontKey => (
+                                        <button
+                                            key={fontKey}
+                                            className={`btn ${appFont === fontKey ? 'btn-primary ' + style : ''}`}
+                                            onClick={() => {
+                                                setAppFont(fontKey);
+                                                setShowFontSelector(false);
+                                            }}
+                                            style={{
+                                                padding: '16px 20px',
+                                                fontFamily: fontOptions[fontKey].family,
+                                                fontSize: '17px',
+                                                textAlign: 'left',
+                                                border: appFont === fontKey ? '3px solid' : '2px solid #ccc',
+                                                borderRadius: '10px',
+                                                background: appFont === fontKey ? undefined : '#f5f5f5',
+                                                color: appFont === fontKey ? '#fff' : '#333',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between'
+                                            }}
+                                        >
+                                            <span>{fontOptions[fontKey].name}</span>
+                                            {appFont === fontKey && <span style={{fontSize: '20px'}}>✓</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p style={{marginTop: '16px', fontSize: '14px', color: '#888', textAlign: 'center'}}>
+                                    Il font scelto viene applicato a tutta l'app
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Modal Dimensione Testo */}
+                        <div className={`modal ${showTextSizeSelector ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Dimensione Testo</h2>
+                                    <button className="close-btn" onClick={() => setShowTextSizeSelector(false)}>×</button>
+                                </div>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                                    {[
+                                        {key: 'normale', name: 'Normale', size: '15px', desc: 'Dimensione standard'},
+                                        {key: 'grande', name: 'Grande', size: '19px', desc: 'Testo più leggibile'},
+                                        {key: 'molto-grande', name: 'Molto Grande', size: '23px', desc: 'Per chi ha difficoltà visive'}
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.key}
+                                            className={`btn ${textSize === opt.key ? 'btn-primary ' + style : ''}`}
+                                            onClick={() => {
+                                                setTextSize(opt.key);
+                                                setShowTextSizeSelector(false);
+                                            }}
+                                            style={{
+                                                padding: '16px 20px',
+                                                fontSize: opt.size,
+                                                textAlign: 'left',
+                                                border: textSize === opt.key ? '3px solid' : '2px solid #ccc',
+                                                borderRadius: '10px',
+                                                background: textSize === opt.key ? undefined : '#f5f5f5',
+                                                color: textSize === opt.key ? '#fff' : '#333',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between'
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{fontWeight: 'bold'}}>{opt.name}</div>
+                                                <div style={{fontSize: '13px', opacity: 0.8, marginTop: '2px'}}>{opt.desc}</div>
+                                            </div>
+                                            {textSize === opt.key && <span style={{fontSize: '20px'}}>✓</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Gestione Categorie */}
+                        <div className={`modal ${showCategoryManager ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Gestisci Categorie</h2>
+                                    <button className="close-btn" onClick={() => setShowCategoryManager(false)}>×</button>
+                                </div>
+                                <div className="form-group">
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="Nuova categoria..."
+                                        id="newCategory"
+                                    />
+                                    <button
+                                        className={`btn btn-primary ${style}`}
+                                        style={{marginTop: '8px', width: '100%'}}
+                                        onClick={() => {
+                                            const input = document.getElementById('newCategory');
+                                            if (input.value.trim()) {
+                                                setCategories([...categories, input.value.trim()]);
+                                                input.value = '';
+                                            }
+                                        }}
+                                    >
+                                        Aggiungi
+                                    </button>
+                                </div>
+                                <div style={{marginTop: '16px'}}>
+                                    {categories.map((cat, i) => (
+                                        <div key={i} style={{padding: '12px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between'}}>
+                                            <span>{cat}</span>
+                                            <button
+                                                className="btn btn-danger"
+                                                style={{padding: '4px 12px'}}
+                                                onClick={() => {
+                                                    if (confirm(`Eliminare "${cat}"?`)) {
+                                                        setCategories(categories.filter((_, j) => j !== i));
+                                                    }
+                                                }}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Aggiungi/Modifica */}
+                        <div className={`modal ${showAddEdit ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>{editingNote ? 'Modifica Nota' : 'Nuova Nota'}</h2>
+                                    <button className="close-btn" onClick={() => setShowAddEdit(false)}>×</button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Data</label>
+                                    <div 
+                                        className="date-picker-btn"
+                                        onClick={() => {
+                                            setPickerMonth(new Date());
+                                            setShowDatePicker(true);
+                                        }}
+                                    >
+                                        <span>{formData.date}</span>
+                                        <span>🗓</span>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Categoria</label>
+                                    <select 
+                                        className="form-select"
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                    >
+                                        {categories.map(cat => (
+                                            <option key={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label" style={{fontSize: '15px', fontWeight: 'bold'}}>Tema (opzionale)</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.theme}
+                                        onChange={(e) => setFormData({...formData, theme: e.target.value.toUpperCase()})}
+                                        placeholder="Es: PAGAMENTI, CURA PIANTE..."
+                                        style={{fontSize: '18px', padding: '14px 12px', minHeight: '50px'}}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Titolo *</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        value={formData.title}
+                                        onChange={(e) => setFormData({...formData, title: e.target.value.toUpperCase()})}
+                                        placeholder="INSERISCI IL TITOLO"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Contenuto</label>
+                                    <textarea
+                                        className="form-textarea"
+                                        value={formData.content}
+                                        onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                        placeholder="Scrivi qui le tue note..."
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Foto ({formData.images.length})</label>
+                                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                                        <button className={`btn btn-primary ${style}`} onClick={takePhoto} style={{fontSize: '14px'}}>
+                                            📷 Scatta Foto
+                                        </button>
+                                        <button className="btn btn-secondary" onClick={addFromGallery} style={{fontSize: '14px'}}>
+                                            🖼️ Dalla Galleria
+                                        </button>
+                                    </div>
+                                    {formData.images.length > 0 && (
+                                        <div className="image-grid">
+                                            {formData.images.map((img, i) => (
+                                                <div key={i} className="image-item">
+                                                    <img src={img} alt={`Foto ${i+1}`} onClick={() => setLightboxSrc(img)} style={{cursor:'pointer'}} />
+                                                    <button className="image-remove" onClick={() => removeImage(i)}>×</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label">Allegati ({(formData.attachments||[]).length})</label>
+                                    <button className="btn btn-secondary" onClick={addAttachment} style={{width:'100%', fontSize:'14px'}}>
+                                        📎 Allega File
+                                    </button>
+                                    {(formData.attachments||[]).length > 0 && (
+                                        <div style={{marginTop:'8px', display:'flex', flexDirection:'column', gap:'6px'}}>
+                                            {(formData.attachments||[]).map((att, i) => (
+                                                <div key={i} style={{display:'flex', alignItems:'center', gap:'8px', padding:'8px 10px', background:'#f5f5f5', borderRadius:'8px'}}>
+                                                    <div onClick={() => openAttachment(att)} style={{display:'flex', alignItems:'center', gap:'8px', flex:1, overflow:'hidden', cursor:'pointer'}}>
+                                                        <span style={{fontSize:'20px'}}>{getFileIcon(att.type)}</span>
+                                                        <div style={{flex:1, overflow:'hidden'}}>
+                                                            <div style={{fontWeight:'bold', fontSize:'13px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{att.name}</div>
+                                                            <div style={{fontSize:'11px', color:'#888'}}>{formatFileSize(att.size)} · <span style={{color:'#4CAF50'}}>Tocca per aprire</span></div>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => removeAttachment(i)} style={{background:'#f44336', color:'white', border:'none', borderRadius:'50%', width:'24px', height:'24px', cursor:'pointer', fontSize:'16px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>×</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <div className="switch-container">
+                                        <label className="switch">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.reminderEnabled}
+                                                onChange={(e) => setFormData({...formData, reminderEnabled: e.target.checked})}
+                                            />
+                                            <span className="slider"></span>
+                                        </label>
+                                        <span>Attiva Promemoria</span>
+                                    </div>
+                                    {formData.reminderEnabled && (
+                                        <>
+                                            <div
+                                                className="date-picker-btn"
+                                                onClick={() => {
+                                                    setPickerMonth(new Date());
+                                                    setShowReminderPicker(true);
+                                                }}
+                                                style={{marginTop: '8px'}}
+                                            >
+                                                <span>{formData.reminderDateTime || 'Seleziona data e ora'}</span>
+                                                <span>🗓 ⏰</span>
+                                            </div>
+
+                                            <div style={{marginTop: '8px', padding: '10px', border: '2px solid #ccc', borderRadius: '8px', fontSize: '14px', color: '#555'}}>
+                                                🔔 Suoneria predefinita
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <div className="switch-container">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.completed}
+                                            onChange={(e) => setFormData({...formData, completed: e.target.checked})}
+                                        />
+                                        <span>Nota completata</span>
+                                    </div>
+                                </div>
+
+                                <div style={{marginTop: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                                    {editingNote && (
+                                        <>
+                                            <button
+                                                className="btn btn-danger"
+                                                style={{padding: '10px 8px'}}
+                                                onClick={deleteNote}
+                                            >🗑 Elimina</button>
+                                            <button
+                                                className="btn btn-secondary"
+                                                style={{padding: '10px 8px'}}
+                                                onClick={duplicateNote}
+                                                title="Crea una copia di questa nota"
+                                            >📋 Duplica</button>
+                                        </>
+                                    )}
+                                    <button className="btn btn-secondary" style={{padding: '10px 8px'}} onClick={() => setShowAddEdit(false)}>Annulla</button>
+                                    <button className={`btn btn-primary ${style}`} style={{padding: '10px 8px'}} onClick={saveNote}>Salva</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Date Picker per Data Nota */}
+                        <div className={`modal ${showDatePicker ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Seleziona Data</h2>
+                                    <button className="close-btn" onClick={() => setShowDatePicker(false)}>×</button>
+                                </div>
+
+                                <div className={`calendar-header ${style}`}>
+                                    <div className="calendar-nav">
+                                        <button onClick={() => changePickerMonth(-1)}>◀</button>
+                                    </div>
+                                    <div className="calendar-month">
+                                        {monthNames[pickerMonth.getMonth()]} {pickerMonth.getFullYear()}
+                                    </div>
+                                    <div className="calendar-nav">
+                                        <button onClick={() => changePickerMonth(1)}>▶</button>
+                                    </div>
+                                </div>
+
+                                <div className="calendar-grid">
+                                    {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+                                        <div key={day} className="calendar-day-header">{day}</div>
+                                    ))}
+                                    {getDaysInMonth(pickerMonth).map((day, index) => (
+                                        <div
+                                            key={index}
+                                            className={`calendar-day ${style}
+                                                ${!day.isCurrentMonth ? 'other-month' : ''} 
+                                                ${isToday(day.date) ? 'today' : ''}`}
+                                            onClick={() => selectDateFromPicker(day.date)}
+                                        >
+                                            {day.day}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Date/Time Picker per Promemoria */}
+                        <div className={`modal ${showReminderPicker ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>Promemoria: Data e Ora</h2>
+                                    <button className="close-btn" onClick={() => setShowReminderPicker(false)}>×</button>
+                                </div>
+
+                                <div className={`calendar-header ${style}`}>
+                                    <div className="calendar-nav">
+                                        <button onClick={() => changePickerMonth(-1)}>◀</button>
+                                    </div>
+                                    <div className="calendar-month">
+                                        {monthNames[pickerMonth.getMonth()]} {pickerMonth.getFullYear()}
+                                    </div>
+                                    <div className="calendar-nav">
+                                        <button onClick={() => changePickerMonth(1)}>▶</button>
+                                    </div>
+                                </div>
+
+                                <div className="calendar-grid">
+                                    {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map(day => (
+                                        <div key={day} className="calendar-day-header">{day}</div>
+                                    ))}
+                                    {getDaysInMonth(pickerMonth).map((day, index) => (
+                                        <div
+                                            key={index}
+                                            className={`calendar-day ${style}
+                                                ${!day.isCurrentMonth ? 'other-month' : ''} 
+                                                ${isToday(day.date) ? 'today' : ''}`}
+                                            onClick={() => {
+                                                setSelectedDateForReminder(day.date);
+                                                setShowTimePicker(true);
+                                            }}
+                                        >
+                                            {day.day}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div style={{padding: '16px', textAlign: 'center', color: '#757575'}}>
+                                    Clicca su un giorno per scegliere l'ora
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Time Picker per selezionare l'ora */}
+                        <div className={`modal ${showTimePicker ? 'show' : ''}`} style={{zIndex: 2001}}>
+                            <div className="modal-content" style={{maxWidth: '400px'}}>
+                                <div className="modal-header">
+                                    <h2>⏰ Seleziona Ora</h2>
+                                    <button className="close-btn" onClick={() => setShowTimePicker(false)}>×</button>
+                                </div>
+                                
+                                <div style={{padding: '30px', textAlign: 'center'}}>
+                                    <p style={{marginBottom: '20px', fontSize: '16px', color: '#666'}}>
+                                        Imposta l'ora del promemoria
+                                    </p>
+                                    
+                                    <input 
+                                        type="time" 
+                                        id="timePickerInput"
+                                        defaultValue="10:00"
+                                        style={{
+                                            width: '100%',
+                                            padding: '16px',
+                                            fontSize: '24px',
+                                            border: '2px solid #ddd',
+                                            borderRadius: '12px',
+                                            textAlign: 'center',
+                                            fontFamily: 'monospace'
+                                        }}
+                                    />
+                                    
+                                    <div style={{marginTop: '30px', display: 'flex', gap: '12px'}}>
+                                        <button 
+                                            className="btn btn-secondary" 
+                                            onClick={() => setShowTimePicker(false)}
+                                            style={{flex: 1}}
+                                        >
+                                            Annulla
+                                        </button>
+                                        <button 
+                                            className={`btn btn-primary ${style}`}
+                                            onClick={() => {
+                                                const timeInput = document.getElementById('timePickerInput');
+                                                const time = timeInput.value;
+                                                if (time && selectedDateForReminder) {
+                                                    selectDateTimeForReminder(selectedDateForReminder, time);
+                                                    setShowTimePicker(false);
+                                                }
+                                            }}
+                                            style={{flex: 1}}
+                                        >
+                                            Conferma
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Esporta Categoria */}
+                        <div className={`modal ${showExportCategory ? 'show' : ''}`}>
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h2>📤 Esporta Categoria</h2>
+                                    <button className="close-btn" onClick={() => setShowExportCategory(false)}>×</button>
+                                </div>
+                                <p style={{marginBottom: '16px', color: '#666', fontSize: '14px'}}>
+                                    Scegli quale categoria esportare in un file separato:
+                                </p>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                                    {categories.map(cat => {
+                                        const count = notes.filter(n => n.category === cat).length;
+                                        return (
+                                            <button
+                                                key={cat}
+                                                className={`btn btn-primary ${style}`}
+                                                style={{padding: '14px 16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
+                                                onClick={() => exportCategoryData(cat)}
+                                            >
+                                                <span>{cat}</span>
+                                                <span style={{opacity: 0.8, fontSize: '13px'}}>{count} {count === 1 ? 'nota' : 'note'}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Aiuto */}
+                        <div className={`modal ${showHelp ? 'show' : ''}`}>
+                            <div className="modal-content" style={{maxWidth: '600px'}}>
+                                <div className="modal-header">
+                                    <h2>❓ Guida Rapida - Le Mie Note</h2>
+                                    <button className="close-btn" onClick={() => setShowHelp(false)}>×</button>
+                                </div>
+                                
+                                <div style={{padding: '20px', lineHeight: '1.6'}}>
+                                    <h3 style={{marginBottom: '12px', color: '#4CAF50'}}>📝 Come usare l'app</h3>
+
+                                    <p><strong>Creare una nota:</strong></p>
+                                    <p>• Tocca il pulsante <strong>+</strong> in basso a destra</p>
+                                    <p>• Scegli la <strong>data</strong>, la <strong>categoria</strong> e il <strong>tema</strong></p>
+                                    <p>• Compila <strong>titolo</strong> e <strong>contenuto</strong></p>
+                                    <p>• I campi <strong>Tema</strong> e <strong>Titolo</strong> vengono convertiti automaticamente in <strong>MAIUSCOLO</strong></p>
+                                    <p>• Salva con il pulsante verde</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Foto:</strong></p>
+                                    <p>• 📷 <strong>Scatta Foto</strong>: apre la fotocamera per scattare una foto</p>
+                                    <p>• 🖼 <strong>Dalla Galleria</strong>: scegli una foto dalla galleria</p>
+                                    <p>• Puoi aggiungere più foto alla stessa nota</p>
+                                    <p>• Tocca una <strong>foto per vederla a schermo intero</strong> (tocca fuori o × per chiudere)</p>
+                                    <p>• Tocca la <strong>X</strong> su una foto per rimuoverla</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Allegati file:</strong></p>
+                                    <p>• 📎 <strong>Allega File</strong>: aggiungi PDF, documenti Word, Excel e altri file</p>
+                                    <p>• Puoi allegare più file alla stessa nota</p>
+                                    <p>• Gli allegati appaiono come etichette nella nota</p>
+                                    <p>• Tocca la <strong>×</strong> accanto a un allegato per rimuoverlo</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Promemoria:</strong></p>
+                                    <p>• Attiva l'interruttore <strong>"Promemoria"</strong></p>
+                                    <p>• Seleziona <strong>data</strong> e <strong>ora</strong> dal calendario</p>
+                                    <p>• La suoneria predefinita suonerà in loop finché non tocchi <strong>OK</strong> sull'avviso</p>
+                                    <p>• Alla scadenza: suoneria + vibrazione + notifica (anche ad app chiusa)</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Navigazione (barra in basso):</strong></p>
+                                    <p>• 📝 <strong>Note</strong> = Lista di tutte le note</p>
+                                    <p>• 🔍 <strong>Cerca</strong> = Cerca per titolo, contenuto o categoria</p>
+                                    <p>• 🗓 <strong>Calendario</strong> = Vedi le note per giorno</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Filtri e ordinamento:</strong></p>
+                                    <p>• Usa il selettore <strong>"Cosa vuoi vedere?"</strong> per filtrare</p>
+                                    <p>• Filtra per: Tutto, Da Completare, Completate o per Categoria</p>
+                                    <p>• Dal menu ⋮: ordina alfabeticamente o per categoria</p>
+                                    <p>• Ordinamento <strong>Categoria → Data</strong>: le categorie con la data più vicina a oggi appaiono per prime, poi in ordine <strong>crescente verso il futuro</strong> (es. 24/02 → 15/03 → 21/05)</p>
+                                    <p>• Sotto-ordinamento dentro la categoria: <strong>Data</strong> (crescente), <strong>Tema</strong> o <strong>Titolo</strong></p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Calendario:</strong></p>
+                                    <p>• Tocca un giorno per vedere le note di quel giorno</p>
+                                    <p>• Tocca il pulsante <strong>+</strong> per aggiungere una nota con la <strong>data del giorno selezionato già pre-impostata</strong></p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Duplicare una nota:</strong></p>
+                                    <p>• Apri una nota in modifica: trovi i pulsanti <strong>🗑 Elimina</strong> e <strong>📋 Duplica</strong> nella prima riga</p>
+                                    <p>• Tocca <strong>📋 Duplica</strong> → conferma → la copia si apre subito per la modifica</p>
+                                    <p>• Cambia la data (o altri campi) e salva</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Scroll veloce (↑↓):</strong></p>
+                                    <p>• Con 5 o più note, compaiono due pulsanti scuri <strong>↑</strong> e <strong>↓</strong> in basso a sinistra</p>
+                                    <p>• <strong>↑</strong> porta subito in cima alla lista, <strong>↓</strong> in fondo</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Menu (⋮) in alto a destra:</strong></p>
+                                    <p>• 🔤 <strong>Ordina alfabeticamente</strong></p>
+                                    <p>• 📁📅 <strong>Categoria → Data</strong> (categorie dalla data più vicina, note in ordine crescente)</p>
+                                    <p>• 📁📝 <strong>Categoria → Tema</strong></p>
+                                    <p>• 📁🔤 <strong>Categoria → Titolo</strong></p>
+                                    <p>• 🎨 <strong>Cambia stile</strong> colore (5 temi disponibili)</p>
+                                    <p>• 🔠 <strong>Cambia font</strong> (3 font disponibili)</p>
+                                    <p>• 🔍 <strong>Dimensione testo</strong> (Normale, Grande, Molto Grande)</p>
+                                    <p>• 🌙/☀️ <strong>Cambia tema</strong> chiaro/scuro</p>
+                                    <p>• 📂 <strong>Gestisci categorie</strong> (aggiungi/rimuovi)</p>
+                                    <p>• 💾 <strong>Esporta dati</strong> (backup completo)</p>
+                                    <p>• 📤 <strong>Esporta categoria...</strong> (esporta solo una categoria)</p>
+                                    <p>• 📥 <strong>Importa dati</strong> (ripristina da backup)</p>
+                                    <p>• 🔒 <strong>Imposta/Rimuovi PIN</strong> di protezione</p>
+                                    <p>• ❓ <strong>Aiuto</strong> (questa guida)</p>
+
+                                    <p style={{marginTop: '16px'}}><strong>Tutte le funzionalità:</strong></p>
+                                    <p>✅ Salvataggio automatico</p>
+                                    <p>✅ Segna nota come "Completata" con checkbox</p>
+                                    <p>✅ Tocca una nota per modificarla</p>
+                                    <p>✅ 🗑 Elimina e 📋 Duplica visibili nella stessa riga</p>
+                                    <p>✅ Conferma richiesta prima di duplicare o eliminare</p>
+                                    <p>✅ Duplica una nota e modifica solo la data</p>
+                                    <p>✅ + nel calendario con data già pre-impostata</p>
+                                    <p>✅ Pulsanti ↑↓ per scorrere rapidamente</p>
+                                    <p>✅ Esporta una singola categoria</p>
+                                    <p>✅ Categorie ordinate per data più vicina → futuro</p>
+                                    <p>✅ Protezione app con PIN (4-6 cifre)</p>
+                                    <p>✅ Backup e ripristino completo</p>
+                                    <p>✅ Font e dimensione testo personalizzabili</p>
+                                    <p>✅ Promemoria nativi (suonano anche ad app chiusa)</p>
+                                    <p>✅ Allega file (PDF, Word, Excel, ecc.) alle note</p>
+                                    <p>✅ Visualizza foto a schermo intero con lightbox</p>
+
+                                    <p style={{marginTop: '16px', padding: '12px', background: '#e8f5e9', borderRadius: '8px'}}>
+                                        <strong>💡 Suggerimento:</strong> I tuoi dati sono salvati solo sul dispositivo.
+                                        Esporta regolarmente un backup per sicurezza!
+                                    </p>
+
+                                    <p style={{marginTop: '16px', padding: '14px', background: '#e3f2fd', borderRadius: '8px', textAlign: 'center'}}>
+                                        <strong>📞 Hai bisogno di aiuto?</strong><br /><br />
+                                        Se riscontri dei problemi nell'uso dell'App o vorresti fossero aggiunte delle funzionalità puoi mandarmi un messaggio su WhatsApp a questo numero <strong>3289696744</strong> sarà un piacere soddisfare le tue esigenze!
+                                    </p>
+                                </div>
+                                
+                                <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.5</p>
+                                    <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
+                                        Ho capito!
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {lightboxSrc && (
+                        <div
+                            onClick={() => setLightboxSrc(null)}
+                            style={{position:'fixed', top:0, left:0, right:0, bottom:0,
+                                background:'rgba(0,0,0,0.96)', zIndex:9999,
+                                display:'flex', alignItems:'center', justifyContent:'center'}}
+                        >
+                            <img
+                                src={lightboxSrc}
+                                alt="Foto"
+                                onClick={e => e.stopPropagation()}
+                                style={{maxWidth:'100%', maxHeight:'90vh', objectFit:'contain', borderRadius:'4px'}}
+                            />
+                            <button
+                                onClick={() => setLightboxSrc(null)}
+                                style={{position:'absolute', top:16, right:16,
+                                    background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)',
+                                    color:'white', fontSize:'28px', width:48, height:48,
+                                    borderRadius:'50%', cursor:'pointer',
+                                    display:'flex', alignItems:'center', justifyContent:'center'}}
+                            >×</button>
+                            <div style={{position:'absolute', bottom:20, left:0, right:0,
+                                textAlign:'center', color:'rgba(255,255,255,0.6)', fontSize:'13px'}}>
+                                Tocca fuori per chiudere
+                            </div>
+                        </div>
+                    )}
+
+                    {pdfViewerSrc && (
+                        <div
+                            onClick={() => setPdfViewerSrc(null)}
+                            style={{position:'fixed', top:0, left:0, right:0, bottom:0,
+                                background:'rgba(0,0,0,0.96)', zIndex:9999,
+                                display:'flex', flexDirection:'column'}}
+                        >
+                            <div style={{display:'flex', alignItems:'center', justifyContent:'space-between',
+                                padding:'8px 16px', flexShrink:0}}>
+                                <div style={{color:'rgba(255,255,255,0.7)', fontSize:'13px'}}>
+                                    Tocca fuori per chiudere
+                                </div>
+                                <button
+                                    onClick={() => setPdfViewerSrc(null)}
+                                    style={{background:'rgba(255,255,255,0.15)', border:'2px solid rgba(255,255,255,0.3)',
+                                        color:'white', fontSize:'28px', width:48, height:48,
+                                        borderRadius:'50%', cursor:'pointer',
+                                        display:'flex', alignItems:'center', justifyContent:'center'}}
+                                >×</button>
+                            </div>
+                            <iframe
+                                src={pdfViewerSrc}
+                                onClick={e => e.stopPropagation()}
+                                style={{flex:1, border:'none', background:'white'}}
+                            />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const checkReminders = () => {
+            const savedNotes = localStorage.getItem('notesAppData');
+            if (!savedNotes) return;
+
+            try {
+                const notes = JSON.parse(savedNotes);
+                const now = new Date();
+
+                notes.forEach(note => {
+                    if (note.reminderEnabled && note.reminderDateTime) {
+                        const reminderKey = `reminder_shown_${note.id}_${note.reminderDateTime}`;
+                        const alreadyShown = localStorage.getItem(reminderKey);
+
+                        if (!alreadyShown) {
+                            // Parse data formato italiano: "16/02/2026 10:00"
+                            const parts = note.reminderDateTime.split(' ');
+                            const dateParts = parts[0].split('/');
+                            const timeParts = parts[1] || '00:00';
+                            // Crea data: anno-mese-giorno ora:minuti
+                            const reminderTime = new Date(
+                                parseInt(dateParts[2]), // anno
+                                parseInt(dateParts[1]) - 1, // mese (0-based)
+                                parseInt(dateParts[0]), // giorno
+                                parseInt(timeParts.split(':')[0]), // ora
+                                parseInt(timeParts.split(':')[1]) // minuti
+                            );
+
+                            const timeDiff = reminderTime - now; // positivo = futuro, negativo = passato
+
+                            // Attiva se: il tempo è arrivato o è passato da meno di 5 minuti
+                            // timeDiff <= 0 = il momento è arrivato o passato
+                            // timeDiff > -300000 = non più di 5 minuti fa (300000ms = 5 min)
+                            if (timeDiff <= 0 && timeDiff > -300000) {
+                                localStorage.setItem(reminderKey, 'true');
+
+                                // SUONA con la suoneria nativa del telefono (loop finché non fermata)
+                                try {
+                                    const uri = note.reminderRingtoneUri
+                                        || localStorage.getItem('notesAppRingtoneUri') || '';
+                                    playNativeRingtone(uri);
+                                } catch (e) {
+                                    console.error('Errore riproduzione suono:', e);
+                                }
+
+                                // VIBRA IL TELEFONO - pattern lungo
+                                if ('vibrate' in navigator) {
+                                    navigator.vibrate([500, 200, 500, 200, 500, 200, 500, 200, 500]);
+                                }
+
+                                // Notifica browser se possibile
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                    const notification = new Notification('\uD83D\uDD14 PROMEMORIA - Le Mie Note', {
+                                        body: note.title + '\n' + note.content,
+                                        icon: '/icon.png',
+                                        badge: '/icon.png',
+                                        vibrate: [500, 200, 500, 200, 500],
+                                        requireInteraction: true,
+                                        tag: 'reminder-' + note.id
+                                    });
+
+                                    notification.onclick = () => {
+                                        window.focus();
+                                        notification.close();
+                                    };
+                                }
+
+                                // Alert — sincrono, blocca finché l'utente non tocca OK
+                                // Poi ferma la suoneria
+                                setTimeout(() => {
+                                    alert('\uD83D\uDD14\uD83D\uDD14\uD83D\uDD14 PROMEMORIA! \uD83D\uDD14\uD83D\uDD14\uD83D\uDD14\n\n' + note.title + '\n\n' + note.content + '\n\nOra: ' + note.reminderDateTime);
+                                    stopNativeRingtone();
+                                }, 100);
+                            }
+                            // Se il promemoria è scaduto da più di 5 minuti, segnalo come già mostrato
+                            // per evitare che suoni la prossima volta che si apre l'app
+                            else if (timeDiff <= -300000) {
+                                localStorage.setItem(reminderKey, 'true');
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('Errore controllo promemoria:', e);
+            }
+        };
+
+        // Richiedi permesso notifiche browser
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Riprogramma tutti i promemoria nativi all'avvio (Android AlarmManager)
+        const initNativeNotifications = () => {
+            if (!window.cordova || !window.cordova.exec) {
+                console.log('Cordova non pronto per notifiche native');
+                return;
+            }
+
+            // Riprogramma tutti i promemoria attivi
+            const savedNotes = localStorage.getItem('notesAppData');
+            if (savedNotes) {
+                try {
+                    const notes = JSON.parse(savedNotes);
+                    let count = 0;
+                    notes.forEach(function(note) {
+                        if (note.reminderEnabled && note.reminderDateTime) {
+                            const reminderKey = 'reminder_shown_' + note.id + '_' + note.reminderDateTime;
+                            const alreadyShown = localStorage.getItem(reminderKey);
+                            if (!alreadyShown) {
+                                scheduleNativeReminder(
+                                    note.id,
+                                    note.title,
+                                    note.content,
+                                    note.reminderDateTime,
+                                    note.reminderRingtoneUri || localStorage.getItem('notesAppRingtoneUri') || ''
+                                );
+                                count++;
+                            }
+                        }
+                    });
+                    console.log('Promemoria nativi riprogrammati all avvio: ' + count);
+                } catch(e) {
+                    console.error('Errore riprogrammazione promemoria:', e);
+                }
+            }
+        };
+
+        // Inizializza notifiche native quando Cordova è pronto
+        if (window.cordova) {
+            document.addEventListener('deviceready', initNativeNotifications, false);
+            // Ferma la suoneria quando l'app si riapre dalla notifica
+            document.addEventListener('resume', function() {
+                stopNativeRingtone();
+            }, false);
+        }
+
+        // Avvia controllo promemoria all'avvio e ogni 30 secondi (fallback JavaScript)
+        let reminderInterval = null;
+        const startReminderCheck = () => {
+            setTimeout(checkReminders, 3000);
+            reminderInterval = setInterval(checkReminders, 30000); // Ogni 30 secondi
+        };
+        startReminderCheck();
+
+        // Usa React 18 createRoot API
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "name": "le-mie-note",
+  "displayName": "Le Mie Note",
+  "version": "1.0.0",
+  "description": "App completa per gestire note, promemoria e attività",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cordova build android",
+    "run": "cordova run android"
+  },
+  "keywords": [
+    "note",
+    "notes",
+    "todo",
+    "reminder",
+    "calendar",
+    "cordova",
+    "android"
+  ],
+  "author": "Il Tuo Nome",
+  "license": "MIT",
+  "devDependencies": {
+    "cordova-android": "^12.0.1",
+    "cordova-plugin-camera": "^7.0.0",
+    "cordova-plugin-device": "^3.0.0",
+    "cordova-plugin-file": "^8.0.0",
+    "cordova-plugin-splashscreen": "^6.0.0",
+    "cordova-plugin-statusbar": "^4.0.0",
+    "cordova-plugin-whitelist": "^1.3.5"
+  },
+  "cordova": {
+    "plugins": {
+      "cordova-plugin-camera": {
+        "ANDROIDX_CORE_VERSION": "1.6.+"
+      },
+      "cordova-plugin-file": {
+        "ANDROIDX_WEBKIT_VERSION": "1.4.0"
+      },
+      "cordova-plugin-statusbar": {},
+      "cordova-plugin-splashscreen": {},
+      "cordova-plugin-whitelist": {},
+      "cordova-plugin-device": {}
+    },
+    "platforms": [
+      "android"
+    ]
+  }
+}

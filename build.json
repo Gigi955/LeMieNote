@@ -1,0 +1,11 @@
+{
+    "android": {
+        "release": {
+            "keystore": "LeMieNote-release.keystore",
+            "storePassword": "LeMieNote123",
+            "alias": "LeMieNote",
+            "password": "LeMieNote123",
+            "keystoreType": "JKS"
+        }
+    }
+}
