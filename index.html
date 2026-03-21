@@ -1914,6 +1914,26 @@
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+            const getContentSnippet = (content, query) => {
+                if (!content) return '';
+                if (!query.trim()) {
+                    return content.length > 100 ? content.substring(0, 100) + '...' : content;
+                }
+                const lowerContent = content.toLowerCase();
+                const lowerQuery = query.toLowerCase();
+                const matchIndex = lowerContent.indexOf(lowerQuery);
+                if (matchIndex === -1) {
+                    return content.length > 100 ? content.substring(0, 100) + '...' : content;
+                }
+                const snippetRadius = 60;
+                const start = Math.max(0, matchIndex - snippetRadius);
+                const end = Math.min(content.length, matchIndex + query.length + snippetRadius);
+                let snippet = content.substring(start, end);
+                if (start > 0) snippet = '...' + snippet;
+                if (end < content.length) snippet = snippet + '...';
+                return snippet;
+            };
+
             const highlightText = (text, query) => {
                 if (!query.trim() || !text) return text || '';
                 try {
@@ -2270,7 +2290,7 @@
                                                     </div>
                                                     <div className="note-content">
                                                         {highlightText(
-                                                            note.content.length > 100 ? note.content.substring(0, 100) + '...' : note.content,
+                                                            getContentSnippet(note.content, searchQuery),
                                                             searchQuery
                                                         )}
                                                     </div>
