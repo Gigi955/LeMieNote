@@ -682,30 +682,37 @@
             color: #000 !important;
         }
 
-        .search-match-banner {
-            background-color: #fffde7;
-            border-left: 3px solid #f9a825;
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin-bottom: 12px;
+        .content-highlight-view {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 120px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .dark .content-highlight-view {
+            background: #2a2a2a;
+            border-color: #444;
+            color: #eee;
+        }
+
+        .edit-content-btn {
             font-size: 13px;
-            color: #555;
-            line-height: 1.5;
-        }
-
-        .dark .search-match-banner {
-            background-color: #2a2400;
-            border-left-color: #f9a825;
-            color: #ccc;
-        }
-
-        .search-match-banner .match-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: #f9a825;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
+            color: #4caf50;
+            background: none;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            padding: 4px 12px;
+            cursor: pointer;
+            margin-bottom: 8px;
         }
 
         /* Calendar */
@@ -1070,6 +1077,7 @@
             const [pinInput, setPinInput] = useState('');
             const [showDatePicker, setShowDatePicker] = useState(false);
             const [showReminderPicker, setShowReminderPicker] = useState(false);
+            const [contentEditMode, setContentEditMode] = useState(false);
             const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
             const [currentMonth, setCurrentMonth] = useState(new Date());
             const [pickerMonth, setPickerMonth] = useState(new Date());
@@ -1231,6 +1239,7 @@
             const editNote = (note) => {
                 setEditingNote(note);
                 setFormData({ ...note });
+                setContentEditMode(false);
                 setShowAddEdit(true);
             };
 
@@ -2744,18 +2753,23 @@
 
                                 <div className="form-group">
                                     <label className="form-label">Contenuto</label>
-                                    {searchQuery.trim() && formData.content && formData.content.toLowerCase().includes(searchQuery.toLowerCase()) && (
-                                        <div className="search-match-banner">
-                                            <div className="match-label">🔍 Trovato nel contenuto</div>
-                                            <div>{highlightText(getContentSnippet(formData.content, searchQuery), searchQuery)}</div>
-                                        </div>
+                                    {searchQuery.trim() && !contentEditMode ? (
+                                        <>
+                                            <div className="content-highlight-view">
+                                                {highlightText(formData.content || '', searchQuery)}
+                                            </div>
+                                            <button className="edit-content-btn" onClick={() => setContentEditMode(true)}>
+                                                ✏️ Modifica contenuto
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <textarea
+                                            className="form-textarea"
+                                            value={formData.content}
+                                            onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                            placeholder="Scrivi qui le tue note..."
+                                        />
                                     )}
-                                    <textarea
-                                        className="form-textarea"
-                                        value={formData.content}
-                                        onChange={(e) => setFormData({...formData, content: e.target.value})}
-                                        placeholder="Scrivi qui le tue note..."
-                                    />
                                 </div>
 
                                 <div className="form-group">
