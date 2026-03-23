@@ -1087,6 +1087,43 @@
             }
         };
 
+        // ---- IndexedDB helper (nessun limite di spazio) ----
+        const IDB_NAME = 'LeMieNoteDB';
+        const IDB_VERSION = 1;
+        const IDB_STORE = 'notes';
+
+        function openIDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+                req.onupgradeneeded = e => {
+                    e.target.result.createObjectStore(IDB_STORE);
+                };
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+
+        async function idbGet(key) {
+            const db = await openIDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, 'readonly');
+                const req = tx.objectStore(IDB_STORE).get(key);
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+
+        async function idbSet(key, value) {
+            const db = await openIDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                const req = tx.objectStore(IDB_STORE).put(value, key);
+                req.onsuccess = () => resolve();
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+        // ---- Fine IndexedDB helper ----
+
         const App = () => {
             const [theme, setTheme] = useState(() => {
                 const saved = localStorage.getItem('notesAppTheme');
@@ -1161,80 +1198,93 @@
                 completed: false
             });
 
-            // Carica note da localStorage all'avvio
+            // Carica note da IndexedDB all'avvio (con fallback e migrazione da localStorage)
             useEffect(() => {
                 document.body.className = theme;
-                
-                try {
-                    const savedNotes = localStorage.getItem('notesAppData');
-                    if (savedNotes) {
-                        const parsedNotes = JSON.parse(savedNotes);
-                        console.log('📖 Caricamento note salvate:', parsedNotes.length);
-                        setNotes(parsedNotes);
-                    } else if (notes.length === 0) {
-                        // Carica note di esempio solo se non ci sono dati salvati
-                        const today = new Date();
-                        const tomorrow = new Date(today);
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        
-                        setNotes([
-                            {
-                                id: 1,
-                                date: today.toLocaleDateString('it-IT'),
-                                category: 'Finanze',
-                                theme: 'Pagamenti',
-                                title: 'Pagare bolletta luce',
-                                content: 'Scadenza pagamento bolletta elettricità entro oggi.',
-                                images: [],
-                                reminderDateTime: today.toLocaleDateString('it-IT') + ' 18:00',
-                                reminderEnabled: true,
-                                completed: false
-                            },
-                            {
-                                id: 2,
-                                date: tomorrow.toLocaleDateString('it-IT'),
-                                category: 'Giardino',
-                                theme: 'Cura piante',
-                                title: 'Annaffiare rose',
-                                content: 'Annaffiare rose e lavanda nel pomeriggio. Aggiungere fertilizzante.',
-                                images: [],
-                                reminderDateTime: '',
-                                reminderEnabled: false,
-                                completed: false
-                            },
-                            {
-                                id: 3,
-                                date: '15/02/2026',
-                                category: 'Programmi ai',
-                                theme: 'Machine Learning',
-                                title: 'Studiare Neural Networks',
-                                content: 'Completare il corso su neural networks e implementare un modello di esempio.',
-                                images: [],
-                                reminderDateTime: '15/02/2026 10:00',
-                                reminderEnabled: true,
-                                completed: false
+
+                idbGet('notesAppData').then(savedNotes => {
+                    if (savedNotes && savedNotes.length > 0) {
+                        console.log('📖 Caricamento note da IndexedDB:', savedNotes.length);
+                        setNotes(savedNotes);
+                    } else {
+                        // Migrazione automatica da localStorage
+                        const oldData = localStorage.getItem('notesAppData');
+                        if (oldData) {
+                            try {
+                                const parsedNotes = JSON.parse(oldData);
+                                console.log('🔄 Migrazione note da localStorage a IndexedDB:', parsedNotes.length);
+                                setNotes(parsedNotes);
+                                idbSet('notesAppData', parsedNotes).then(() => {
+                                    localStorage.removeItem('notesAppData');
+                                    console.log('✅ Migrazione completata, localStorage liberato');
+                                });
+                            } catch(e) {
+                                console.error('❌ Errore migrazione note:', e);
                             }
-                        ]);
+                        } else {
+                            // Carica note di esempio solo se non ci sono dati salvati
+                            const today = new Date();
+                            const tomorrow = new Date(today);
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+
+                            setNotes([
+                                {
+                                    id: 1,
+                                    date: today.toLocaleDateString('it-IT'),
+                                    category: 'Finanze',
+                                    theme: 'Pagamenti',
+                                    title: 'Pagare bolletta luce',
+                                    content: 'Scadenza pagamento bolletta elettricità entro oggi.',
+                                    images: [],
+                                    reminderDateTime: today.toLocaleDateString('it-IT') + ' 18:00',
+                                    reminderEnabled: true,
+                                    completed: false
+                                },
+                                {
+                                    id: 2,
+                                    date: tomorrow.toLocaleDateString('it-IT'),
+                                    category: 'Giardino',
+                                    theme: 'Cura piante',
+                                    title: 'Annaffiare rose',
+                                    content: 'Annaffiare rose e lavanda nel pomeriggio. Aggiungere fertilizzante.',
+                                    images: [],
+                                    reminderDateTime: '',
+                                    reminderEnabled: false,
+                                    completed: false
+                                },
+                                {
+                                    id: 3,
+                                    date: '15/02/2026',
+                                    category: 'Programmi ai',
+                                    theme: 'Machine Learning',
+                                    title: 'Studiare Neural Networks',
+                                    content: 'Completare il corso su neural networks e implementare un modello di esempio.',
+                                    images: [],
+                                    reminderDateTime: '15/02/2026 10:00',
+                                    reminderEnabled: true,
+                                    completed: false
+                                }
+                            ]);
+                        }
                     }
-                } catch (error) {
+                }).catch(error => {
                     console.error('❌ Errore caricamento note:', error);
-                }
+                });
             }, []);
 
-            // Salva note in localStorage ogni volta che cambiano
+            // Salva note in IndexedDB ogni volta che cambiano
             const isInitialLoad = useRef(true);
             useEffect(() => {
                 if (isInitialLoad.current) {
                     isInitialLoad.current = false;
                     return;
                 }
-                try {
-                    localStorage.setItem('notesAppData', JSON.stringify(notes));
-                    console.log('💾 Note salvate automaticamente:', notes.length);
-                } catch (error) {
+                idbSet('notesAppData', notes).then(() => {
+                    console.log('💾 Note salvate in IndexedDB:', notes.length);
+                }).catch(error => {
                     console.error('❌ Errore salvataggio note:', error);
                     alert('Attenzione: impossibile salvare le note. Spazio insufficiente?');
-                }
+                });
             }, [notes]);
 
             // Salva tema
@@ -3088,11 +3138,8 @@
         };
 
         const checkReminders = () => {
-            const savedNotes = localStorage.getItem('notesAppData');
-            if (!savedNotes) return;
-
-            try {
-                const notes = JSON.parse(savedNotes);
+            idbGet('notesAppData').then(notes => {
+                if (!notes || notes.length === 0) return;
                 const now = new Date();
 
                 notes.forEach(note => {
@@ -3169,9 +3216,9 @@
                         }
                     }
                 });
-            } catch (e) {
+            }).catch(e => {
                 console.error('Errore controllo promemoria:', e);
-            }
+            });
         };
 
         // Richiedi permesso notifiche browser
@@ -3186,33 +3233,30 @@
                 return;
             }
 
-            // Riprogramma tutti i promemoria attivi
-            const savedNotes = localStorage.getItem('notesAppData');
-            if (savedNotes) {
-                try {
-                    const notes = JSON.parse(savedNotes);
-                    let count = 0;
-                    notes.forEach(function(note) {
-                        if (note.reminderEnabled && note.reminderDateTime) {
-                            const reminderKey = 'reminder_shown_' + note.id + '_' + note.reminderDateTime;
-                            const alreadyShown = localStorage.getItem(reminderKey);
-                            if (!alreadyShown) {
-                                scheduleNativeReminder(
-                                    note.id,
-                                    note.title,
-                                    note.content,
-                                    note.reminderDateTime,
-                                    note.reminderSound || 'classica'
-                                );
-                                count++;
-                            }
+            // Riprogramma tutti i promemoria attivi (legge da IndexedDB)
+            idbGet('notesAppData').then(notes => {
+                if (!notes || notes.length === 0) return;
+                let count = 0;
+                notes.forEach(function(note) {
+                    if (note.reminderEnabled && note.reminderDateTime) {
+                        const reminderKey = 'reminder_shown_' + note.id + '_' + note.reminderDateTime;
+                        const alreadyShown = localStorage.getItem(reminderKey);
+                        if (!alreadyShown) {
+                            scheduleNativeReminder(
+                                note.id,
+                                note.title,
+                                note.content,
+                                note.reminderDateTime,
+                                note.reminderSound || 'classica'
+                            );
+                            count++;
                         }
-                    });
-                    console.log('Promemoria nativi riprogrammati all avvio: ' + count);
-                } catch(e) {
-                    console.error('Errore riprogrammazione promemoria:', e);
-                }
-            }
+                    }
+                });
+                console.log('Promemoria nativi riprogrammati all avvio: ' + count);
+            }).catch(e => {
+                console.error('Errore riprogrammazione promemoria:', e);
+            });
         };
 
         // Inizializza notifiche native quando Cordova è pronto
