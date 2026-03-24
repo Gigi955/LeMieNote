@@ -2787,25 +2787,37 @@
 
                                 <div className="form-group">
                                     <label className="form-label" style={{fontSize: '15px', fontWeight: 'bold'}}>Tema (opzionale)</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.theme}
-                                        onChange={(e) => setFormData({...formData, theme: e.target.value.toUpperCase()})}
-                                        placeholder="Es: PAGAMENTI, CURA PIANTE..."
-                                        style={{fontSize: '18px', padding: '14px 12px', minHeight: '50px'}}
-                                    />
+                                    {searchQuery.trim() && !contentEditMode ? (
+                                        <div className="content-highlight-view" style={{minHeight: '40px', fontSize: '18px', fontWeight: 'bold'}}>
+                                            {highlightText(formData.theme || '', searchQuery)}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            value={formData.theme}
+                                            onChange={(e) => setFormData({...formData, theme: e.target.value.toUpperCase()})}
+                                            placeholder="Es: PAGAMENTI, CURA PIANTE..."
+                                            style={{fontSize: '18px', padding: '14px 12px', minHeight: '50px'}}
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="form-group">
                                     <label className="form-label">Titolo *</label>
-                                    <input
-                                        type="text"
-                                        className="form-input"
-                                        value={formData.title}
-                                        onChange={(e) => setFormData({...formData, title: e.target.value.toUpperCase()})}
-                                        placeholder="INSERISCI IL TITOLO"
-                                    />
+                                    {searchQuery.trim() && !contentEditMode ? (
+                                        <div className="content-highlight-view" style={{minHeight: '40px', fontWeight: 'bold'}}>
+                                            {highlightText(formData.title || '', searchQuery)}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            value={formData.title}
+                                            onChange={(e) => setFormData({...formData, title: e.target.value.toUpperCase()})}
+                                            placeholder="INSERISCI IL TITOLO"
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="form-group">

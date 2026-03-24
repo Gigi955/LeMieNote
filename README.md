@@ -18,8 +18,10 @@ App avanzata per gestire note, promemoria, categorie e calendario con tema chiar
 
 ✅ **Ricerca Avanzata**
 - Ricerca in tutte le note
-- Evidenziazione risultati
+- Evidenziazione risultati in giallo nei campi Tema, Titolo e Contenuto
 - Filtri per categoria e stato
+- Aprendo una nota dai risultati di ricerca, Tema, Titolo e Contenuto mostrano il termine cercato evidenziato
+- Tocca **✏️ Modifica contenuto** per passare alla modalità editing e modificare i campi
 
 ✅ **Promemoria**
 - Imposta data e ora per reminder
