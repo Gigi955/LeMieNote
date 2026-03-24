@@ -1334,6 +1334,19 @@
                 }
             };
 
+            const deleteCompleted = () => {
+                const completedNotes = notes.filter(n => n.completed);
+                if (completedNotes.length === 0) {
+                    alert('Nessuna nota completata da eliminare.');
+                    return;
+                }
+                if (confirm(`Sei sicuro di voler eliminare ${completedNotes.length} nota${completedNotes.length > 1 ? ' completate' : ' completata'}?\n\nQuesta operazione non è reversibile.`)) {
+                    completedNotes.forEach(n => cancelNativeReminder(n.id));
+                    setNotes(notes.filter(n => !n.completed));
+                    setShowMenu(false);
+                }
+            };
+
             const duplicateNote = () => {
                 if (!confirm('Vuoi duplicare questa nota?\n\nVerrà creata una copia identica che potrai modificare (es. cambiare la data).')) return;
                 const newId = Date.now();
@@ -2255,6 +2268,9 @@
                                         </div>
                                         <div className="dropdown-item" onClick={importData}>
                                             📥 Importa dati
+                                        </div>
+                                        <div className="dropdown-item" style={{color: '#f44336'}} onClick={deleteCompleted}>
+                                            🗑 Elimina completate
                                         </div>
                                         {!appPin ? (
                                             <div className="dropdown-item" onClick={setupPin}>

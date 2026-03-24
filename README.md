@@ -10,6 +10,7 @@ App avanzata per gestire note, promemoria, categorie e calendario con tema chiar
 - Campo "Tema" per sottocategorie
 - Supporto immagini multiple per nota
 - Checkbox "Completata" per task
+- Elimina in blocco tutte le note completate (menu ⋮ → "🗑 Elimina completate")
 
 ✅ **Calendario Integrato**
 - Vista calendario con note per data
