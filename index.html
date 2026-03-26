@@ -407,6 +407,29 @@
             margin-top: 8px;
         }
 
+        /* Category group headers */
+        .category-group-header {
+            padding: 10px 16px 6px;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            border-bottom: 2px solid currentColor;
+            margin: 12px 4px 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .category-group-header:first-child { margin-top: 4px; }
+        .category-group-count {
+            font-size: 11px;
+            font-weight: 400;
+            opacity: 0.7;
+            text-transform: none;
+            letter-spacing: 0;
+            margin-left: auto;
+        }
+
         /* FAB */
         .fab {
             position: absolute;
@@ -2232,7 +2255,7 @@
                     <div className="phone-screen">
                         {/* Toolbar */}
                         <div className={`toolbar ${style}`}>
-                            <h1>Le Mie Note</h1>
+                            <h1>Le Mie Note{sortMode === 'category' && <span style={{fontSize:'11px', fontWeight:'400', opacity:'0.85', marginLeft:'8px', verticalAlign:'middle'}}>📁 per categoria</span>}</h1>
                             <div className="toolbar-actions">
                                 <div className="dropdown">
                                     <button className="menu-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
@@ -2326,7 +2349,79 @@
                                                 <h3>Nessuna nota</h3>
                                                 <p>Tocca il pulsante + per creare una nuova nota</p>
                                             </div>
-                                        ) : (
+                                        ) : sortMode === 'category' ? (() => {
+                                            const groups = [];
+                                            let currentCat = null;
+                                            const themeColors = {
+                                                modern: '#2196F3', nature: '#4CAF50', ocean: '#00BCD4',
+                                                sunset: '#FF5722', minimal: '#607D8B'
+                                            };
+                                            const headerColor = themeColors[style] || '#2196F3';
+                                            filteredNotes.forEach(note => {
+                                                const cat = note.category || 'Senza categoria';
+                                                if (cat !== currentCat) {
+                                                    const catCount = filteredNotes.filter(n => (n.category || 'Senza categoria') === cat).length;
+                                                    groups.push({ type: 'header', label: cat, count: catCount });
+                                                    currentCat = cat;
+                                                }
+                                                groups.push({ type: 'note', note });
+                                            });
+                                            return groups.map((item) => item.type === 'header' ? (
+                                                <div key={`h-${item.label}`} className="category-group-header" style={{color: headerColor}}>
+                                                    📁 {item.label}
+                                                    <span className="category-group-count">{item.count} {item.count === 1 ? 'nota' : 'note'}</span>
+                                                </div>
+                                            ) : (
+                                                <div key={item.note.id} className="note-card" onClick={() => editNote(item.note)}>
+                                                    <div className="note-header">
+                                                        <span className="note-date">{item.note.date}</span>
+                                                    </div>
+                                                    {item.note.theme && (
+                                                        <div className="note-theme">Tema: {item.note.theme}</div>
+                                                    )}
+                                                    <div className={`note-title ${item.note.completed ? 'completed' : ''}`}>
+                                                        {item.note.title}
+                                                    </div>
+                                                    <div className="note-content">
+                                                        {item.note.content.length > 100 ? item.note.content.substring(0, 100) + '...' : item.note.content}
+                                                    </div>
+                                                    {item.note.images && item.note.images.length > 0 && (
+                                                        <div className="note-images">
+                                                            {item.note.images.slice(0, 3).map((img, i) => (
+                                                                <img key={i} src={img} alt={`Foto ${i+1}`} className="note-image" onClick={(e) => { e.stopPropagation(); setLightboxSrc(img); }} style={{cursor:'pointer'}} />
+                                                            ))}
+                                                            {item.note.images.length > 3 && (
+                                                                <div className="note-image" style={{background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                                                    +{item.note.images.length - 3}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    {item.note.attachments && item.note.attachments.length > 0 && (
+                                                        <div style={{display:'flex', flexWrap:'wrap', gap:'4px', marginTop:'6px'}}>
+                                                            {item.note.attachments.map((att, i) => (
+                                                                <span key={i} style={{fontSize:'11px', padding:'2px 8px', background:'#f0f0f0', borderRadius:'12px', color:'#555'}}>
+                                                                    {getFileIcon(att.type)} {att.name.length > 20 ? att.name.slice(0,18)+'…' : att.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {item.note.reminderEnabled && (
+                                                        <div className="reminder-badge">
+                                                            ⏰ {item.note.reminderDateTime}
+                                                        </div>
+                                                    )}
+                                                    <div className="note-checkbox" onClick={(e) => e.stopPropagation()}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={item.note.completed}
+                                                            onChange={() => toggleCompleted(item.note.id)}
+                                                        />
+                                                        <span>Completata</span>
+                                                    </div>
+                                                </div>
+                                            ));
+                                        })() : (
                                             filteredNotes.map(note => (
                                                 <div key={note.id} className="note-card" onClick={() => editNote(note)}>
                                                     <div className="note-header">
@@ -2369,8 +2464,8 @@
                                                         </div>
                                                     )}
                                                     <div className="note-checkbox" onClick={(e) => e.stopPropagation()}>
-                                                        <input 
-                                                            type="checkbox" 
+                                                        <input
+                                                            type="checkbox"
                                                             checked={note.completed}
                                                             onChange={() => toggleCompleted(note.id)}
                                                         />
