@@ -2,6 +2,19 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          if (regs.length > 0) {
+            Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+              caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              }).then(function() { location.reload(); });
+            });
+          }
+        });
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="format-detection" content="telephone=no">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *; media-src 'self' data: blob: *; connect-src 'self' https://unpkg.com *;">
@@ -2256,17 +2269,14 @@
                                     <button className="menu-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
                                     {showMenu && <div className="dropdown-overlay show" onClick={() => setShowMenu(false)}></div>}
                                     <div className={`dropdown-content ${showMenu ? 'show' : ''}`}>
-                                        <div className="dropdown-item" onClick={sortAlphabetically}>
-                                            🔤 Ordina alfabeticamente
+                                        <div className="dropdown-item" onClick={() => { setSortMode('date'); setShowMenu(false); }}>
+                                            📅 Ordina per data
                                         </div>
                                         <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('date'); setShowMenu(false); }}>
-                                            📁📅 Categoria → Data
+                                            📁 Ordina per categoria
                                         </div>
-                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('theme'); setShowMenu(false); }}>
-                                            📁📝 Categoria → Tema
-                                        </div>
-                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('title'); setShowMenu(false); }}>
-                                            📁🔤 Categoria → Titolo
+                                        <div className="dropdown-item" onClick={sortAlphabetically}>
+                                            🔤 Ordina alfabeticamente
                                         </div>
                                         <div className="dropdown-item" onClick={() => { setShowStyleSelector(true); setShowMenu(false); }}>
                                             🎨 Cambia stile
@@ -3335,7 +3345,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.5</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.14</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
