@@ -3280,15 +3280,19 @@
 
                                     <p style={{marginTop: '16px'}}><strong>Navigazione (barra in basso):</strong></p>
                                     <p>• 📝 <strong>Note</strong> = Lista di tutte le note</p>
-                                    <p>• 🔍 <strong>Cerca</strong> = Cerca per titolo, contenuto o categoria</p>
+                                    <p>• 🔍 <strong>Cerca</strong> = Cerca per titolo, contenuto, categoria o tema</p>
+                                    <p>• Ricerca multi-parola: scrivi più parole (es. "pagare bolletta") per trovare note che le contengono tutte</p>
+                                    <p>• Accenti ignorati: "elettricita" trova "elettricità", "piu" trova "più"</p>
+                                    <p>• I risultati con la parola nel <strong>titolo</strong> appaiono per primi</p>
+                                    <p>• Tocca il <strong>testo della nota</strong> nei risultati per aprire il <strong>Lettore Contenuto</strong></p>
                                     <p>• 🗓 <strong>Calendario</strong> = Vedi le note per giorno</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Filtri e ordinamento:</strong></p>
                                     <p>• Usa il selettore <strong>"Cosa vuoi vedere?"</strong> per filtrare</p>
                                     <p>• Filtra per: Tutto, Da Completare, Completate o per Categoria</p>
-                                    <p>• Dal menu ⋮: ordina alfabeticamente o per categoria</p>
-                                    <p>• Ordinamento <strong>Categoria → Data</strong>: le categorie con la data più vicina a oggi appaiono per prime, poi in ordine <strong>crescente verso il futuro</strong> (es. 24/02 → 15/03 → 21/05)</p>
-                                    <p>• Sotto-ordinamento dentro la categoria: <strong>Data</strong> (crescente), <strong>Tema</strong> o <strong>Titolo</strong></p>
+                                    <p>• Dal menu ⋮: ordina per <strong>data</strong>, per <strong>categoria</strong> o <strong>alfabeticamente</strong></p>
+                                    <p>• Ordinamento <strong>per categoria</strong>: le note vengono raggruppate con intestazione di categoria</p>
+                                    <p>• La toolbar mostra <strong>📁 per categoria</strong> quando l'ordinamento per categoria è attivo</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Calendario:</strong></p>
                                     <p>• Tocca un giorno per vedere le note di quel giorno</p>
@@ -3299,15 +3303,15 @@
                                     <p>• Tocca <strong>📋 Duplica</strong> → conferma → la copia si apre subito per la modifica</p>
                                     <p>• Cambia la data (o altri campi) e salva</p>
 
-                                    <p style={{marginTop: '16px'}}><strong>Scroll veloce (↑↓):</strong></p>
-                                    <p>• Con 5 o più note, compaiono due pulsanti scuri <strong>↑</strong> e <strong>↓</strong> in basso a sinistra</p>
-                                    <p>• <strong>↑</strong> porta subito in cima alla lista, <strong>↓</strong> in fondo</p>
+                                    <p style={{marginTop: '16px'}}><strong>Lettore Contenuto:</strong></p>
+                                    <p>• Nella schermata <strong>Cerca</strong>, tocca il <strong>testo della nota</strong> (non il titolo) per aprire il contenuto completo</p>
+                                    <p>• Il termine cercato è evidenziato in <strong>giallo</strong> su tutto il testo</p>
+                                    <p>• Tocca <strong>✏️ Modifica nota</strong> per passare alla modifica, o <strong>✕</strong> per chiudere</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Menu (⋮) in alto a destra:</strong></p>
-                                    <p>• 🔤 <strong>Ordina alfabeticamente</strong></p>
-                                    <p>• 📁📅 <strong>Categoria → Data</strong> (categorie dalla data più vicina, note in ordine crescente)</p>
-                                    <p>• 📁📝 <strong>Categoria → Tema</strong></p>
-                                    <p>• 📁🔤 <strong>Categoria → Titolo</strong></p>
+                                    <p>• 📅 <strong>Ordina per data</strong> (ordine cronologico, più recenti prima)</p>
+                                    <p>• 📁 <strong>Ordina per categoria</strong> (raggruppa le note per categoria)</p>
+                                    <p>• 🔤 <strong>Ordina alfabeticamente</strong> (A-Z per titolo)</p>
                                     <p>• 🎨 <strong>Cambia stile</strong> colore (5 temi disponibili)</p>
                                     <p>• 🔠 <strong>Cambia font</strong> (3 font disponibili)</p>
                                     <p>• 🔍 <strong>Dimensione testo</strong> (Normale, Grande, Molto Grande)</p>
@@ -3327,9 +3331,10 @@
                                     <p>✅ Conferma richiesta prima di duplicare o eliminare</p>
                                     <p>✅ Duplica una nota e modifica solo la data</p>
                                     <p>✅ + nel calendario con data già pre-impostata</p>
-                                    <p>✅ Pulsanti ↑↓ per scorrere rapidamente</p>
                                     <p>✅ Esporta una singola categoria</p>
-                                    <p>✅ Categorie ordinate per data più vicina → futuro</p>
+                                    <p>✅ Ordina per data / categoria / alfabeticamente</p>
+                                    <p>✅ Lettore Contenuto con testo evidenziato in ricerca</p>
+                                    <p>✅ Ricerca multi-parola con accenti ignorati</p>
                                     <p>✅ Protezione app con PIN (4-6 cifre)</p>
                                     <p>✅ Backup e ripristino completo</p>
                                     <p>✅ Font e dimensione testo personalizzabili</p>
@@ -3349,7 +3354,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.15</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.16</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
