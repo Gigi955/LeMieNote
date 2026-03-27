@@ -549,8 +549,8 @@
         }
 
         .form-textarea {
-            min-height: 350px;
-            max-height: 50vh;
+            min-height: 500px;
+            max-height: 70vh;
             resize: vertical;
         }
 
@@ -723,8 +723,8 @@
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 12px;
-            min-height: 120px;
-            max-height: 300px;
+            min-height: 240px;
+            max-height: 600px;
             overflow-y: auto;
             font-size: 15px;
             line-height: 1.6;
@@ -750,6 +750,43 @@
             cursor: pointer;
             margin-bottom: 8px;
         }
+
+        /* Content Reader Modal */
+        .content-reader-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); z-index: 1100;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 20px 8px; box-sizing: border-box;
+        }
+        .content-reader-modal {
+            background: #fff; border-radius: 12px; width: 100%; max-width: 480px;
+            max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        .dark .content-reader-modal { background: #1e1e1e; color: #eee; }
+        .content-reader-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0;
+        }
+        .dark .content-reader-header { border-bottom-color: #333; }
+        .content-reader-title {
+            font-size: 16px; font-weight: 600; color: #333;
+            flex: 1; margin-right: 8px;
+        }
+        .dark .content-reader-title { color: #eee; }
+        .content-reader-close {
+            background: none; border: none; font-size: 20px; cursor: pointer;
+            color: #888; padding: 4px; line-height: 1; flex-shrink: 0;
+        }
+        .content-reader-body {
+            flex: 1; overflow-y: auto; padding: 16px; font-size: 15px;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: #333;
+        }
+        .dark .content-reader-body { color: #ddd; }
+        .content-reader-footer {
+            padding: 12px 16px; border-top: 1px solid #eee; flex-shrink: 0; text-align: center;
+        }
+        .dark .content-reader-footer { border-top-color: #333; }
 
         /* Calendar */
         .calendar-container {
@@ -1128,6 +1165,8 @@
             const [searchQuery, setSearchQuery] = useState('');
             const [sortMode, setSortMode] = useState('date'); // 'date' | 'category' | 'alphabetical'
             const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
+            const [showContentReader, setShowContentReader] = useState(false);
+            const [contentReaderNote, setContentReaderNote] = useState(null);
             const [showAddEdit, setShowAddEdit] = useState(false);
             const [showMenu, setShowMenu] = useState(false);
             const [showStyleSelector, setShowStyleSelector] = useState(false);
@@ -1661,14 +1700,21 @@
                 }
 
                 if (currentView === 'search' && searchQuery.trim()) {
-                    const query = searchQuery.toLowerCase();
-                    filtered = filtered.filter(n =>
-                        (n.title && n.title.toLowerCase().includes(query)) ||
-                        (n.content && n.content.toLowerCase().includes(query)) ||
-                        (n.category && n.category.toLowerCase().includes(query)) ||
-                        (n.theme && n.theme.toLowerCase().includes(query)) ||
-                        (n.date && n.date.includes(searchQuery))
-                    );
+                    const words = searchQuery.trim().split(/\s+/).filter(w => w.length > 0);
+                    const normWords = words.map(normalizeText);
+                    filtered = filtered.filter(n => {
+                        const fields = [n.title, n.content, n.category, n.theme, n.date]
+                            .map(f => normalizeText(f));
+                        return normWords.every(word => fields.some(field => field.includes(word)));
+                    });
+                    // Ordina per rilevanza: match nel titolo prima
+                    filtered.sort((a, b) => {
+                        const aTitle = normalizeText(a.title);
+                        const bTitle = normalizeText(b.title);
+                        const aHit = normWords.some(w => aTitle.includes(w)) ? 0 : 1;
+                        const bHit = normWords.some(w => bTitle.includes(w)) ? 0 : 1;
+                        return aHit - bHit;
+                    });
                 }
 
                 // Applica ordinamento in base a sortMode
@@ -2049,6 +2095,9 @@
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+            const normalizeText = (text) =>
+                (text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
             const getContentSnippet = (content, query) => {
                 if (!content) return '';
                 const trimmedQuery = query.trim();
@@ -2092,12 +2141,14 @@
 
             const highlightText = (text, query) => {
                 if (!query.trim() || !text) return text || '';
-                const trimmedQuery = query.trim();
+                const words = query.trim().split(/\s+/).filter(w => w.length > 0);
                 try {
-                    const escaped = escapeRegex(trimmedQuery);
-                    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+                    const escapedWords = words.map(w => escapeRegex(w));
+                    const pattern = escapedWords.join('|');
+                    const parts = text.split(new RegExp(`(${pattern})`, 'gi'));
+                    const normWords = words.map(w => w.toLowerCase());
                     return parts.map((part, i) =>
-                        part.toLowerCase() === trimmedQuery.toLowerCase()
+                        normWords.some(w => part.toLowerCase() === w)
                             ? <span key={i} className="highlight">{part}</span>
                             : part
                     );
@@ -2517,7 +2568,10 @@
                                                     <div className={`note-title ${note.completed ? 'completed' : ''}`}>
                                                         {highlightText(note.title, searchQuery)}
                                                     </div>
-                                                    <div className="note-content">
+                                                    <div className="note-content"
+                                                        style={{cursor:'pointer'}}
+                                                        onClick={(e) => { e.stopPropagation(); setContentReaderNote(note); setShowContentReader(true); }}
+                                                    >
                                                         {highlightText(
                                                             getContentSnippet(note.content, searchQuery),
                                                             searchQuery
@@ -2604,56 +2658,6 @@
                                 </div>
                             ) : null}
                         </div>
-
-                        {/* Pulsanti scroll veloce - visibili solo nella vista note con note presenti */}
-                        {currentView === 'notes' && filteredNotes.length > 4 && (
-                            <div style={{
-                                position: 'absolute',
-                                left: '12px',
-                                bottom: '84px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                zIndex: 98
-                            }}>
-                                <button
-                                    style={{
-                                        width: '38px',
-                                        height: '38px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.35)',
-                                        color: 'white',
-                                        border: 'none',
-                                        fontSize: '18px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        touchAction: 'manipulation'
-                                    }}
-                                    onClick={() => contentAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-                                    title="Vai in cima"
-                                >↑</button>
-                                <button
-                                    style={{
-                                        width: '38px',
-                                        height: '38px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.35)',
-                                        color: 'white',
-                                        border: 'none',
-                                        fontSize: '18px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        touchAction: 'manipulation'
-                                    }}
-                                    onClick={() => contentAreaRef.current?.scrollTo({ top: contentAreaRef.current.scrollHeight, behavior: 'smooth' })}
-                                    title="Vai in fondo"
-                                >↓</button>
-                            </div>
-                        )}
 
                         {/* FAB - posizionato assoluto su phone-screen */}
                         {(currentView === 'notes' || currentView === 'calendar') && (
@@ -3345,7 +3349,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.14</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.15</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3378,6 +3382,26 @@
                             <div style={{position:'absolute', bottom:20, left:0, right:0,
                                 textAlign:'center', color:'rgba(255,255,255,0.6)', fontSize:'13px'}}>
                                 Tocca fuori per chiudere
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Content Reader — apre il contenuto completo cliccando il testo in ricerca */}
+                    {showContentReader && contentReaderNote && (
+                        <div className="content-reader-overlay" onClick={() => setShowContentReader(false)}>
+                            <div className="content-reader-modal" onClick={e => e.stopPropagation()}>
+                                <div className="content-reader-header">
+                                    <span className="content-reader-title">{contentReaderNote.title}</span>
+                                    <button className="content-reader-close" onClick={() => setShowContentReader(false)}>✕</button>
+                                </div>
+                                <div className="content-reader-body">
+                                    {highlightText(contentReaderNote.content || '', searchQuery)}
+                                </div>
+                                <div className="content-reader-footer">
+                                    <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
+                                        ✏️ Modifica nota
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
