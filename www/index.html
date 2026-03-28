@@ -1156,6 +1156,91 @@
         }
         // ---- Fine IndexedDB helper ----
 
+        // === SCROLL THUMB (semicerchio) ===
+        function ScrollThumb({ scrollRef, color }) {
+            const [thumbTop, setThumbTop] = React.useState(0);
+            const [thumbHeight, setThumbHeight] = React.useState(40);
+            const [visible, setVisible] = React.useState(false);
+            const hideTimer = React.useRef(null);
+            const dragging = React.useRef(false);
+            const dragStartY = React.useRef(0);
+            const dragStartScroll = React.useRef(0);
+            const localThumbHeight = React.useRef(40);
+
+            React.useEffect(() => {
+                const el = scrollRef.current;
+                if (!el) return;
+                const update = () => {
+                    const { scrollTop, scrollHeight, clientHeight } = el;
+                    if (scrollHeight <= clientHeight + 2) { setVisible(false); return; }
+                    const h = Math.max(40, (clientHeight / scrollHeight) * clientHeight);
+                    const top = (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - h);
+                    localThumbHeight.current = h;
+                    setThumbHeight(h);
+                    setThumbTop(top);
+                    setVisible(true);
+                    clearTimeout(hideTimer.current);
+                    if (!dragging.current) {
+                        hideTimer.current = setTimeout(() => setVisible(false), 1500);
+                    }
+                };
+                el.addEventListener('scroll', update, { passive: true });
+                update();
+                return () => { el.removeEventListener('scroll', update); clearTimeout(hideTimer.current); };
+            }, [scrollRef]);
+
+            const onPointerDown = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                dragging.current = true;
+                dragStartY.current = e.clientY;
+                dragStartScroll.current = scrollRef.current ? scrollRef.current.scrollTop : 0;
+                const onMove = (me) => {
+                    const el = scrollRef.current;
+                    if (!el) return;
+                    const { scrollHeight, clientHeight } = el;
+                    const delta = me.clientY - dragStartY.current;
+                    const thumbRange = clientHeight - localThumbHeight.current;
+                    if (thumbRange <= 0) return;
+                    el.scrollTop = dragStartScroll.current + (delta / thumbRange) * (scrollHeight - clientHeight);
+                };
+                const onUp = () => {
+                    dragging.current = false;
+                    hideTimer.current = setTimeout(() => setVisible(false), 1500);
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onUp);
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onUp);
+            };
+
+            if (!visible) return null;
+            return React.createElement('div', {
+                style: {
+                    position: 'absolute', right: 0, top: thumbTop,
+                    width: 22, height: thumbHeight,
+                    background: color || '#4CAF50',
+                    opacity: 0.7,
+                    borderRadius: '12px 0 0 12px',
+                    cursor: 'grab',
+                    zIndex: 20,
+                    touchAction: 'none',
+                    boxShadow: '-2px 0 6px rgba(0,0,0,0.2)',
+                    userSelect: 'none',
+                },
+                onPointerDown
+            });
+        }
+
+        const themeColors = {
+            modern: '#2196F3',
+            nature: '#4CAF50',
+            ocean:  '#00BCD4',
+            sunset: '#FF5722',
+            minimal:'#607D8B'
+        };
+        // ====================================
+
         const App = () => {
             const [theme, setTheme] = useState(() => {
                 const saved = localStorage.getItem('notesAppTheme');
@@ -2120,6 +2205,17 @@
             };
 
             const contentAreaRef = useRef(null);
+            const contentReaderBodyRef = useRef(null);
+
+            // Scroll alla prima parola evidenziata quando si apre il Content Reader
+            useEffect(() => {
+                if (showContentReader && contentReaderBodyRef.current) {
+                    setTimeout(() => {
+                        const first = contentReaderBodyRef.current.querySelector('.highlight');
+                        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 120);
+                }
+            }, [showContentReader, contentReaderNote]);
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -2409,6 +2505,7 @@
 
                         {/* Content Area */}
                         <div className="content-area" ref={contentAreaRef}>
+                            <ScrollThumb scrollRef={contentAreaRef} color={themeColors[style] || '#4CAF50'} />
                             {currentView === 'notes' ? (
                                 <>
                                     {/* Filtro con BORDO SPESSO come screenshot */}
@@ -3405,7 +3502,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.21</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.22</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3445,14 +3542,15 @@
                     {/* Content Reader — apre il contenuto completo cliccando il testo in ricerca */}
                     {showContentReader && contentReaderNote && (
                         <div className="content-reader-overlay" onClick={() => setShowContentReader(false)}>
-                            <div className="content-reader-modal" onClick={e => e.stopPropagation()}>
+                            <div className="content-reader-modal" onClick={e => e.stopPropagation()} style={{position:'relative'}}>
                                 <div className="content-reader-header">
                                     <span className="content-reader-title">{contentReaderNote.title}</span>
                                     <button className="content-reader-close" onClick={() => setShowContentReader(false)}>✕</button>
                                 </div>
-                                <div className="content-reader-body">
+                                <div className="content-reader-body" ref={contentReaderBodyRef}>
                                     {highlightText(contentReaderNote.content || '', searchQuery)}
                                 </div>
+                                <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 <div className="content-reader-footer">
                                     <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
                                         ✏️ Modifica nota
