@@ -89,6 +89,7 @@
             padding-right: env(safe-area-inset-right);
             background: transparent;
             overflow: hidden;
+            transform: translateZ(0);
         }
 
         .phone-screen {
@@ -191,6 +192,8 @@
             -webkit-overflow-scrolling: touch;
             position: relative;
             overscroll-behavior: contain;
+            touch-action: pan-y;
+            will-change: transform;
         }
 
         /* Bottom Navigation */
@@ -316,17 +319,11 @@
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .dark .note-card {
             background: #1e1e1e;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-
-        .note-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .note-header {
@@ -549,9 +546,9 @@
         }
 
         .form-textarea {
-            min-height: 500px;
-            max-height: 70vh;
-            resize: vertical;
+            min-height: 400px;
+            resize: none;
+            overflow-y: hidden;
         }
 
         .switch-container {
@@ -704,6 +701,27 @@
         .search-input.ocean { border-color: #00BCD4; }
         .search-input.sunset { border-color: #FF5722; }
         .search-input.minimal { border-color: #607D8B; }
+
+        .search-mode-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 10px 16px;
+        }
+        .mode-btn {
+            padding: 5px 14px;
+            border-radius: 16px;
+            border: 1.5px solid #ccc;
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.15s;
+        }
+        .mode-btn.active.modern { background: #2196F3; border-color: #2196F3; color: white; font-weight: 500; }
+        .mode-btn.active.nature { background: #4CAF50; border-color: #4CAF50; color: white; font-weight: 500; }
+        .mode-btn.active.ocean  { background: #00BCD4; border-color: #00BCD4; color: white; font-weight: 500; }
+        .mode-btn.active.sunset { background: #FF5722; border-color: #FF5722; color: white; font-weight: 500; }
+        .mode-btn.active.minimal{ background: #607D8B; border-color: #607D8B; color: white; font-weight: 500; }
 
         .highlight {
             background-color: #fff176;
@@ -975,7 +993,7 @@
         }
 
         /* Buttons and interactive elements */
-        button, .btn, .dropdown-item, .note-card, .calendar-day, .date-picker-btn {
+        button, .btn, .dropdown-item, .calendar-day, .date-picker-btn {
             touch-action: manipulation;
         }
 
@@ -1163,6 +1181,7 @@
             });
             const [selectedFilter, setSelectedFilter] = useState('Tutto');
             const [searchQuery, setSearchQuery] = useState('');
+            const [searchMode, setSearchMode] = useState('all-words'); // 'all-words' | 'phrase'
             const [sortMode, setSortMode] = useState('date'); // 'date' | 'category' | 'alphabetical'
             const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
             const [showContentReader, setShowContentReader] = useState(false);
@@ -1702,11 +1721,20 @@
                 if (currentView === 'search' && searchQuery.trim()) {
                     const words = searchQuery.trim().split(/\s+/).filter(w => w.length > 0);
                     const normWords = words.map(normalizeText);
-                    filtered = filtered.filter(n => {
-                        const fields = [n.title, n.content, n.category, n.theme, n.date]
-                            .map(f => normalizeText(f));
-                        return normWords.every(word => fields.some(field => field.includes(word)));
-                    });
+                    if (searchMode === 'phrase') {
+                        const normPhrase = normalizeText(searchQuery.trim());
+                        filtered = filtered.filter(n => {
+                            const fields = [n.title, n.content, n.category, n.theme, n.date]
+                                .map(f => normalizeText(f));
+                            return fields.some(field => field.includes(normPhrase));
+                        });
+                    } else {
+                        filtered = filtered.filter(n => {
+                            const fields = [n.title, n.content, n.category, n.theme, n.date]
+                                .map(f => normalizeText(f));
+                            return normWords.every(word => fields.some(field => field.includes(word)));
+                        });
+                    }
                     // Ordina per rilevanza: match nel titolo prima
                     filtered.sort((a, b) => {
                         const aTitle = normalizeText(a.title);
@@ -2098,34 +2126,40 @@
             const normalizeText = (text) =>
                 (text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-            const getContentSnippet = (content, query) => {
+            const getContentSnippet = (content, query, mode = 'all-words') => {
                 if (!content) return '';
                 const trimmedQuery = query.trim();
                 if (!trimmedQuery) {
                     return content.length > 120 ? content.substring(0, 120) + '...' : content;
                 }
                 const lowerContent = content.toLowerCase();
-                const lowerQuery = trimmedQuery.toLowerCase();
                 const snippetRadius = 40;
                 const maxOccurrences = 4;
 
-                // Trova tutte le posizioni del termine
-                const positions = [];
-                let idx = lowerContent.indexOf(lowerQuery);
-                while (idx !== -1) {
-                    positions.push(idx);
-                    idx = lowerContent.indexOf(lowerQuery, idx + 1);
+                // In modalità "tutte le parole" cerca ogni parola singolarmente
+                const searchTerms = (mode === 'all-words')
+                    ? trimmedQuery.toLowerCase().split(/\s+/).filter(w => w)
+                    : [trimmedQuery.toLowerCase()];
+
+                // Raccoglie posizioni di tutti i termini
+                const allPositions = [];
+                for (const term of searchTerms) {
+                    let idx = lowerContent.indexOf(term);
+                    while (idx !== -1) {
+                        allPositions.push({ pos: idx, len: term.length });
+                        idx = lowerContent.indexOf(term, idx + 1);
+                    }
                 }
 
-                if (positions.length === 0) {
+                if (allPositions.length === 0) {
                     return content.length > 120 ? content.substring(0, 120) + '...' : content;
                 }
 
-                // Estrai snippet per ogni occorrenza (max 4)
-                const shown = positions.slice(0, maxOccurrences);
-                const parts = shown.map(pos => {
+                allPositions.sort((a, b) => a.pos - b.pos);
+                const shown = allPositions.slice(0, maxOccurrences);
+                const parts = shown.map(({ pos, len }) => {
                     const start = Math.max(0, pos - snippetRadius);
-                    const end = Math.min(content.length, pos + lowerQuery.length + snippetRadius);
+                    const end = Math.min(content.length, pos + len + snippetRadius);
                     let snippet = content.substring(start, end);
                     if (start > 0) snippet = '...' + snippet;
                     if (end < content.length) snippet = snippet + '...';
@@ -2133,8 +2167,8 @@
                 });
 
                 let result = parts.join(' [...] ');
-                if (positions.length > maxOccurrences) {
-                    result += ` (+${positions.length - maxOccurrences} altri)`;
+                if (allPositions.length > maxOccurrences) {
+                    result += ` (+${allPositions.length - maxOccurrences} altri)`;
                 }
                 return result;
             };
@@ -2534,7 +2568,7 @@
                                 </>
                             ) : currentView === 'search' ? (
                                 <>
-                                    <input 
+                                    <input
                                         type="text"
                                         className={`search-input ${style}`}
                                         placeholder="Cerca in tutte le note..."
@@ -2542,6 +2576,18 @@
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         autoFocus
                                     />
+                                    {searchQuery.trim().split(/\s+/).filter(w => w).length > 1 && (
+                                        <div className="search-mode-toggle">
+                                            <button
+                                                className={`mode-btn ${searchMode === 'all-words' ? `active ${style}` : ''}`}
+                                                onClick={() => setSearchMode('all-words')}
+                                            >Tutte le parole</button>
+                                            <button
+                                                className={`mode-btn ${searchMode === 'phrase' ? `active ${style}` : ''}`}
+                                                onClick={() => setSearchMode('phrase')}
+                                            >Frase esatta</button>
+                                        </div>
+                                    )}
                                     <div className="notes-container">
                                         {!searchQuery.trim() ? (
                                             <div className="empty-state">
@@ -2573,7 +2619,7 @@
                                                         onClick={(e) => { e.stopPropagation(); setContentReaderNote(note); setShowContentReader(true); }}
                                                     >
                                                         {highlightText(
-                                                            getContentSnippet(note.content, searchQuery),
+                                                            getContentSnippet(note.content, searchQuery, searchMode),
                                                             searchQuery
                                                         )}
                                                     </div>
@@ -2955,7 +3001,12 @@
                                         <textarea
                                             className="form-textarea"
                                             value={formData.content}
-                                            onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                            ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(400, el.scrollHeight) + 'px'; } }}
+                                            onChange={(e) => {
+                                                setFormData({...formData, content: e.target.value});
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = Math.max(400, e.target.scrollHeight) + 'px';
+                                            }}
                                             placeholder="Scrivi qui le tue note..."
                                         />
                                     )}
@@ -3354,7 +3405,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.16</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.21</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>

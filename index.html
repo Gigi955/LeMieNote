@@ -2,16 +2,24 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          if (regs.length > 0) {
+            Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+              caches.keys().then(function(keys) {
+                return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+              }).then(function() { location.reload(); });
+            });
+          }
+        });
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="format-detection" content="telephone=no">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: gap: https://unpkg.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *; media-src 'self' data: blob: *; connect-src 'self' https://unpkg.com *;">
     <title>Le Mie Note</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Le Mie Note">
-    <meta name="theme-color" content="#4CAF50">
+    <script src="cordova.js"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -81,6 +89,7 @@
             padding-right: env(safe-area-inset-right);
             background: transparent;
             overflow: hidden;
+            transform: translateZ(0);
         }
 
         .phone-screen {
@@ -183,6 +192,8 @@
             -webkit-overflow-scrolling: touch;
             position: relative;
             overscroll-behavior: contain;
+            touch-action: pan-y;
+            will-change: transform;
         }
 
         /* Bottom Navigation */
@@ -308,17 +319,11 @@
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .dark .note-card {
             background: #1e1e1e;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-        }
-
-        .note-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .note-header {
@@ -541,9 +546,9 @@
         }
 
         .form-textarea {
-            min-height: 350px;
-            max-height: 50vh;
-            resize: vertical;
+            min-height: 400px;
+            resize: none;
+            overflow-y: hidden;
         }
 
         .switch-container {
@@ -697,6 +702,27 @@
         .search-input.sunset { border-color: #FF5722; }
         .search-input.minimal { border-color: #607D8B; }
 
+        .search-mode-toggle {
+            display: flex;
+            gap: 8px;
+            padding: 0 16px 10px 16px;
+        }
+        .mode-btn {
+            padding: 5px 14px;
+            border-radius: 16px;
+            border: 1.5px solid #ccc;
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            color: #666;
+            transition: all 0.15s;
+        }
+        .mode-btn.active.modern { background: #2196F3; border-color: #2196F3; color: white; font-weight: 500; }
+        .mode-btn.active.nature { background: #4CAF50; border-color: #4CAF50; color: white; font-weight: 500; }
+        .mode-btn.active.ocean  { background: #00BCD4; border-color: #00BCD4; color: white; font-weight: 500; }
+        .mode-btn.active.sunset { background: #FF5722; border-color: #FF5722; color: white; font-weight: 500; }
+        .mode-btn.active.minimal{ background: #607D8B; border-color: #607D8B; color: white; font-weight: 500; }
+
         .highlight {
             background-color: #fff176;
             color: #000 !important;
@@ -715,8 +741,8 @@
             border: 1px solid #ddd;
             border-radius: 8px;
             padding: 12px;
-            min-height: 120px;
-            max-height: 300px;
+            min-height: 240px;
+            max-height: 600px;
             overflow-y: auto;
             font-size: 15px;
             line-height: 1.6;
@@ -742,6 +768,43 @@
             cursor: pointer;
             margin-bottom: 8px;
         }
+
+        /* Content Reader Modal */
+        .content-reader-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6); z-index: 1100;
+            display: flex; align-items: flex-start; justify-content: center;
+            padding: 20px 8px; box-sizing: border-box;
+        }
+        .content-reader-modal {
+            background: #fff; border-radius: 12px; width: 100%; max-width: 480px;
+            max-height: 85vh; display: flex; flex-direction: column; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        .dark .content-reader-modal { background: #1e1e1e; color: #eee; }
+        .content-reader-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border-bottom: 1px solid #eee; flex-shrink: 0;
+        }
+        .dark .content-reader-header { border-bottom-color: #333; }
+        .content-reader-title {
+            font-size: 16px; font-weight: 600; color: #333;
+            flex: 1; margin-right: 8px;
+        }
+        .dark .content-reader-title { color: #eee; }
+        .content-reader-close {
+            background: none; border: none; font-size: 20px; cursor: pointer;
+            color: #888; padding: 4px; line-height: 1; flex-shrink: 0;
+        }
+        .content-reader-body {
+            flex: 1; overflow-y: auto; padding: 16px; font-size: 15px;
+            line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: #333;
+        }
+        .dark .content-reader-body { color: #ddd; }
+        .content-reader-footer {
+            padding: 12px 16px; border-top: 1px solid #eee; flex-shrink: 0; text-align: center;
+        }
+        .dark .content-reader-footer { border-top-color: #333; }
 
         /* Calendar */
         .calendar-container {
@@ -930,7 +993,7 @@
         }
 
         /* Buttons and interactive elements */
-        button, .btn, .dropdown-item, .note-card, .calendar-day, .date-picker-btn {
+        button, .btn, .dropdown-item, .calendar-day, .date-picker-btn {
             touch-action: manipulation;
         }
 
@@ -1118,8 +1181,11 @@
             });
             const [selectedFilter, setSelectedFilter] = useState('Tutto');
             const [searchQuery, setSearchQuery] = useState('');
+            const [searchMode, setSearchMode] = useState('all-words'); // 'all-words' | 'phrase'
             const [sortMode, setSortMode] = useState('date'); // 'date' | 'category' | 'alphabetical'
             const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
+            const [showContentReader, setShowContentReader] = useState(false);
+            const [contentReaderNote, setContentReaderNote] = useState(null);
             const [showAddEdit, setShowAddEdit] = useState(false);
             const [showMenu, setShowMenu] = useState(false);
             const [showStyleSelector, setShowStyleSelector] = useState(false);
@@ -1653,14 +1719,30 @@
                 }
 
                 if (currentView === 'search' && searchQuery.trim()) {
-                    const query = searchQuery.toLowerCase();
-                    filtered = filtered.filter(n =>
-                        (n.title && n.title.toLowerCase().includes(query)) ||
-                        (n.content && n.content.toLowerCase().includes(query)) ||
-                        (n.category && n.category.toLowerCase().includes(query)) ||
-                        (n.theme && n.theme.toLowerCase().includes(query)) ||
-                        (n.date && n.date.includes(searchQuery))
-                    );
+                    const words = searchQuery.trim().split(/\s+/).filter(w => w.length > 0);
+                    const normWords = words.map(normalizeText);
+                    if (searchMode === 'phrase') {
+                        const normPhrase = normalizeText(searchQuery.trim());
+                        filtered = filtered.filter(n => {
+                            const fields = [n.title, n.content, n.category, n.theme, n.date]
+                                .map(f => normalizeText(f));
+                            return fields.some(field => field.includes(normPhrase));
+                        });
+                    } else {
+                        filtered = filtered.filter(n => {
+                            const fields = [n.title, n.content, n.category, n.theme, n.date]
+                                .map(f => normalizeText(f));
+                            return normWords.every(word => fields.some(field => field.includes(word)));
+                        });
+                    }
+                    // Ordina per rilevanza: match nel titolo prima
+                    filtered.sort((a, b) => {
+                        const aTitle = normalizeText(a.title);
+                        const bTitle = normalizeText(b.title);
+                        const aHit = normWords.some(w => aTitle.includes(w)) ? 0 : 1;
+                        const bHit = normWords.some(w => bTitle.includes(w)) ? 0 : 1;
+                        return aHit - bHit;
+                    });
                 }
 
                 // Applica ordinamento in base a sortMode
@@ -2041,34 +2123,43 @@
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            const getContentSnippet = (content, query) => {
+            const normalizeText = (text) =>
+                (text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+            const getContentSnippet = (content, query, mode = 'all-words') => {
                 if (!content) return '';
                 const trimmedQuery = query.trim();
                 if (!trimmedQuery) {
                     return content.length > 120 ? content.substring(0, 120) + '...' : content;
                 }
                 const lowerContent = content.toLowerCase();
-                const lowerQuery = trimmedQuery.toLowerCase();
                 const snippetRadius = 40;
                 const maxOccurrences = 4;
 
-                // Trova tutte le posizioni del termine
-                const positions = [];
-                let idx = lowerContent.indexOf(lowerQuery);
-                while (idx !== -1) {
-                    positions.push(idx);
-                    idx = lowerContent.indexOf(lowerQuery, idx + 1);
+                // In modalità "tutte le parole" cerca ogni parola singolarmente
+                const searchTerms = (mode === 'all-words')
+                    ? trimmedQuery.toLowerCase().split(/\s+/).filter(w => w)
+                    : [trimmedQuery.toLowerCase()];
+
+                // Raccoglie posizioni di tutti i termini
+                const allPositions = [];
+                for (const term of searchTerms) {
+                    let idx = lowerContent.indexOf(term);
+                    while (idx !== -1) {
+                        allPositions.push({ pos: idx, len: term.length });
+                        idx = lowerContent.indexOf(term, idx + 1);
+                    }
                 }
 
-                if (positions.length === 0) {
+                if (allPositions.length === 0) {
                     return content.length > 120 ? content.substring(0, 120) + '...' : content;
                 }
 
-                // Estrai snippet per ogni occorrenza (max 4)
-                const shown = positions.slice(0, maxOccurrences);
-                const parts = shown.map(pos => {
+                allPositions.sort((a, b) => a.pos - b.pos);
+                const shown = allPositions.slice(0, maxOccurrences);
+                const parts = shown.map(({ pos, len }) => {
                     const start = Math.max(0, pos - snippetRadius);
-                    const end = Math.min(content.length, pos + lowerQuery.length + snippetRadius);
+                    const end = Math.min(content.length, pos + len + snippetRadius);
                     let snippet = content.substring(start, end);
                     if (start > 0) snippet = '...' + snippet;
                     if (end < content.length) snippet = snippet + '...';
@@ -2076,20 +2167,22 @@
                 });
 
                 let result = parts.join(' [...] ');
-                if (positions.length > maxOccurrences) {
-                    result += ` (+${positions.length - maxOccurrences} altri)`;
+                if (allPositions.length > maxOccurrences) {
+                    result += ` (+${allPositions.length - maxOccurrences} altri)`;
                 }
                 return result;
             };
 
             const highlightText = (text, query) => {
                 if (!query.trim() || !text) return text || '';
-                const trimmedQuery = query.trim();
+                const words = query.trim().split(/\s+/).filter(w => w.length > 0);
                 try {
-                    const escaped = escapeRegex(trimmedQuery);
-                    const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+                    const escapedWords = words.map(w => escapeRegex(w));
+                    const pattern = escapedWords.join('|');
+                    const parts = text.split(new RegExp(`(${pattern})`, 'gi'));
+                    const normWords = words.map(w => w.toLowerCase());
                     return parts.map((part, i) =>
-                        part.toLowerCase() === trimmedQuery.toLowerCase()
+                        normWords.some(w => part.toLowerCase() === w)
                             ? <span key={i} className="highlight">{part}</span>
                             : part
                     );
@@ -2261,17 +2354,14 @@
                                     <button className="menu-btn" onClick={() => setShowMenu(!showMenu)}>⋮</button>
                                     {showMenu && <div className="dropdown-overlay show" onClick={() => setShowMenu(false)}></div>}
                                     <div className={`dropdown-content ${showMenu ? 'show' : ''}`}>
-                                        <div className="dropdown-item" onClick={sortAlphabetically}>
-                                            🔤 Ordina alfabeticamente
+                                        <div className="dropdown-item" onClick={() => { setSortMode('date'); setShowMenu(false); }}>
+                                            📅 Ordina per data
                                         </div>
                                         <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('date'); setShowMenu(false); }}>
-                                            📁📅 Categoria → Data
+                                            📁 Ordina per categoria
                                         </div>
-                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('theme'); setShowMenu(false); }}>
-                                            📁📝 Categoria → Tema
-                                        </div>
-                                        <div className="dropdown-item" onClick={() => { setSortMode('category'); setCategorySortBy('title'); setShowMenu(false); }}>
-                                            📁🔤 Categoria → Titolo
+                                        <div className="dropdown-item" onClick={sortAlphabetically}>
+                                            🔤 Ordina alfabeticamente
                                         </div>
                                         <div className="dropdown-item" onClick={() => { setShowStyleSelector(true); setShowMenu(false); }}>
                                             🎨 Cambia stile
@@ -2478,7 +2568,7 @@
                                 </>
                             ) : currentView === 'search' ? (
                                 <>
-                                    <input 
+                                    <input
                                         type="text"
                                         className={`search-input ${style}`}
                                         placeholder="Cerca in tutte le note..."
@@ -2486,6 +2576,18 @@
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         autoFocus
                                     />
+                                    {searchQuery.trim().split(/\s+/).filter(w => w).length > 1 && (
+                                        <div className="search-mode-toggle">
+                                            <button
+                                                className={`mode-btn ${searchMode === 'all-words' ? `active ${style}` : ''}`}
+                                                onClick={() => setSearchMode('all-words')}
+                                            >Tutte le parole</button>
+                                            <button
+                                                className={`mode-btn ${searchMode === 'phrase' ? `active ${style}` : ''}`}
+                                                onClick={() => setSearchMode('phrase')}
+                                            >Frase esatta</button>
+                                        </div>
+                                    )}
                                     <div className="notes-container">
                                         {!searchQuery.trim() ? (
                                             <div className="empty-state">
@@ -2512,9 +2614,12 @@
                                                     <div className={`note-title ${note.completed ? 'completed' : ''}`}>
                                                         {highlightText(note.title, searchQuery)}
                                                     </div>
-                                                    <div className="note-content">
+                                                    <div className="note-content"
+                                                        style={{cursor:'pointer'}}
+                                                        onClick={(e) => { e.stopPropagation(); setContentReaderNote(note); setShowContentReader(true); }}
+                                                    >
                                                         {highlightText(
-                                                            getContentSnippet(note.content, searchQuery),
+                                                            getContentSnippet(note.content, searchQuery, searchMode),
                                                             searchQuery
                                                         )}
                                                     </div>
@@ -2599,56 +2704,6 @@
                                 </div>
                             ) : null}
                         </div>
-
-                        {/* Pulsanti scroll veloce - visibili solo nella vista note con note presenti */}
-                        {currentView === 'notes' && filteredNotes.length > 4 && (
-                            <div style={{
-                                position: 'absolute',
-                                left: '12px',
-                                bottom: '84px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                zIndex: 98
-                            }}>
-                                <button
-                                    style={{
-                                        width: '38px',
-                                        height: '38px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.35)',
-                                        color: 'white',
-                                        border: 'none',
-                                        fontSize: '18px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        touchAction: 'manipulation'
-                                    }}
-                                    onClick={() => contentAreaRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-                                    title="Vai in cima"
-                                >↑</button>
-                                <button
-                                    style={{
-                                        width: '38px',
-                                        height: '38px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(0,0,0,0.35)',
-                                        color: 'white',
-                                        border: 'none',
-                                        fontSize: '18px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        touchAction: 'manipulation'
-                                    }}
-                                    onClick={() => contentAreaRef.current?.scrollTo({ top: contentAreaRef.current.scrollHeight, behavior: 'smooth' })}
-                                    title="Vai in fondo"
-                                >↓</button>
-                            </div>
-                        )}
 
                         {/* FAB - posizionato assoluto su phone-screen */}
                         {(currentView === 'notes' || currentView === 'calendar') && (
@@ -2946,7 +3001,12 @@
                                         <textarea
                                             className="form-textarea"
                                             value={formData.content}
-                                            onChange={(e) => setFormData({...formData, content: e.target.value})}
+                                            ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(400, el.scrollHeight) + 'px'; } }}
+                                            onChange={(e) => {
+                                                setFormData({...formData, content: e.target.value});
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = Math.max(400, e.target.scrollHeight) + 'px';
+                                            }}
                                             placeholder="Scrivi qui le tue note..."
                                         />
                                     )}
@@ -3271,15 +3331,19 @@
 
                                     <p style={{marginTop: '16px'}}><strong>Navigazione (barra in basso):</strong></p>
                                     <p>• 📝 <strong>Note</strong> = Lista di tutte le note</p>
-                                    <p>• 🔍 <strong>Cerca</strong> = Cerca per titolo, contenuto o categoria</p>
+                                    <p>• 🔍 <strong>Cerca</strong> = Cerca per titolo, contenuto, categoria o tema</p>
+                                    <p>• Ricerca multi-parola: scrivi più parole (es. "pagare bolletta") per trovare note che le contengono tutte</p>
+                                    <p>• Accenti ignorati: "elettricita" trova "elettricità", "piu" trova "più"</p>
+                                    <p>• I risultati con la parola nel <strong>titolo</strong> appaiono per primi</p>
+                                    <p>• Tocca il <strong>testo della nota</strong> nei risultati per aprire il <strong>Lettore Contenuto</strong></p>
                                     <p>• 🗓 <strong>Calendario</strong> = Vedi le note per giorno</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Filtri e ordinamento:</strong></p>
                                     <p>• Usa il selettore <strong>"Cosa vuoi vedere?"</strong> per filtrare</p>
                                     <p>• Filtra per: Tutto, Da Completare, Completate o per Categoria</p>
-                                    <p>• Dal menu ⋮: ordina alfabeticamente o per categoria</p>
-                                    <p>• Ordinamento <strong>Categoria → Data</strong>: le categorie con la data più vicina a oggi appaiono per prime, poi in ordine <strong>crescente verso il futuro</strong> (es. 24/02 → 15/03 → 21/05)</p>
-                                    <p>• Sotto-ordinamento dentro la categoria: <strong>Data</strong> (crescente), <strong>Tema</strong> o <strong>Titolo</strong></p>
+                                    <p>• Dal menu ⋮: ordina per <strong>data</strong>, per <strong>categoria</strong> o <strong>alfabeticamente</strong></p>
+                                    <p>• Ordinamento <strong>per categoria</strong>: le note vengono raggruppate con intestazione di categoria</p>
+                                    <p>• La toolbar mostra <strong>📁 per categoria</strong> quando l'ordinamento per categoria è attivo</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Calendario:</strong></p>
                                     <p>• Tocca un giorno per vedere le note di quel giorno</p>
@@ -3290,15 +3354,15 @@
                                     <p>• Tocca <strong>📋 Duplica</strong> → conferma → la copia si apre subito per la modifica</p>
                                     <p>• Cambia la data (o altri campi) e salva</p>
 
-                                    <p style={{marginTop: '16px'}}><strong>Scroll veloce (↑↓):</strong></p>
-                                    <p>• Con 5 o più note, compaiono due pulsanti scuri <strong>↑</strong> e <strong>↓</strong> in basso a sinistra</p>
-                                    <p>• <strong>↑</strong> porta subito in cima alla lista, <strong>↓</strong> in fondo</p>
+                                    <p style={{marginTop: '16px'}}><strong>Lettore Contenuto:</strong></p>
+                                    <p>• Nella schermata <strong>Cerca</strong>, tocca il <strong>testo della nota</strong> (non il titolo) per aprire il contenuto completo</p>
+                                    <p>• Il termine cercato è evidenziato in <strong>giallo</strong> su tutto il testo</p>
+                                    <p>• Tocca <strong>✏️ Modifica nota</strong> per passare alla modifica, o <strong>✕</strong> per chiudere</p>
 
                                     <p style={{marginTop: '16px'}}><strong>Menu (⋮) in alto a destra:</strong></p>
-                                    <p>• 🔤 <strong>Ordina alfabeticamente</strong></p>
-                                    <p>• 📁📅 <strong>Categoria → Data</strong> (categorie dalla data più vicina, note in ordine crescente)</p>
-                                    <p>• 📁📝 <strong>Categoria → Tema</strong></p>
-                                    <p>• 📁🔤 <strong>Categoria → Titolo</strong></p>
+                                    <p>• 📅 <strong>Ordina per data</strong> (ordine cronologico, più recenti prima)</p>
+                                    <p>• 📁 <strong>Ordina per categoria</strong> (raggruppa le note per categoria)</p>
+                                    <p>• 🔤 <strong>Ordina alfabeticamente</strong> (A-Z per titolo)</p>
                                     <p>• 🎨 <strong>Cambia stile</strong> colore (5 temi disponibili)</p>
                                     <p>• 🔠 <strong>Cambia font</strong> (3 font disponibili)</p>
                                     <p>• 🔍 <strong>Dimensione testo</strong> (Normale, Grande, Molto Grande)</p>
@@ -3318,9 +3382,10 @@
                                     <p>✅ Conferma richiesta prima di duplicare o eliminare</p>
                                     <p>✅ Duplica una nota e modifica solo la data</p>
                                     <p>✅ + nel calendario con data già pre-impostata</p>
-                                    <p>✅ Pulsanti ↑↓ per scorrere rapidamente</p>
                                     <p>✅ Esporta una singola categoria</p>
-                                    <p>✅ Categorie ordinate per data più vicina → futuro</p>
+                                    <p>✅ Ordina per data / categoria / alfabeticamente</p>
+                                    <p>✅ Lettore Contenuto con testo evidenziato in ricerca</p>
+                                    <p>✅ Ricerca multi-parola con accenti ignorati</p>
                                     <p>✅ Protezione app con PIN (4-6 cifre)</p>
                                     <p>✅ Backup e ripristino completo</p>
                                     <p>✅ Font e dimensione testo personalizzabili</p>
@@ -3340,7 +3405,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.5</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.21</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3373,6 +3438,26 @@
                             <div style={{position:'absolute', bottom:20, left:0, right:0,
                                 textAlign:'center', color:'rgba(255,255,255,0.6)', fontSize:'13px'}}>
                                 Tocca fuori per chiudere
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Content Reader — apre il contenuto completo cliccando il testo in ricerca */}
+                    {showContentReader && contentReaderNote && (
+                        <div className="content-reader-overlay" onClick={() => setShowContentReader(false)}>
+                            <div className="content-reader-modal" onClick={e => e.stopPropagation()}>
+                                <div className="content-reader-header">
+                                    <span className="content-reader-title">{contentReaderNote.title}</span>
+                                    <button className="content-reader-close" onClick={() => setShowContentReader(false)}>✕</button>
+                                </div>
+                                <div className="content-reader-body">
+                                    {highlightText(contentReaderNote.content || '', searchQuery)}
+                                </div>
+                                <div className="content-reader-footer">
+                                    <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
+                                        ✏️ Modifica nota
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
