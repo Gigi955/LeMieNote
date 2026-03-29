@@ -1157,7 +1157,7 @@
         // ---- Fine IndexedDB helper ----
 
         // === SCROLL THUMB (semicerchio) ===
-        function ScrollThumb({ scrollRef, color }) {
+        function ScrollThumb({ scrollRef, color, insideScroller = false }) {
             const [thumbTop, setThumbTop] = React.useState(0);
             const [thumbHeight, setThumbHeight] = React.useState(40);
             const [visible, setVisible] = React.useState(false);
@@ -1174,7 +1174,8 @@
                     const { scrollTop, scrollHeight, clientHeight } = el;
                     if (scrollHeight <= clientHeight + 2) { setVisible(false); return; }
                     const h = Math.max(40, (clientHeight / scrollHeight) * clientHeight);
-                    const top = (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - h);
+                    const offset = (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - h);
+                    const top = insideScroller ? scrollTop + offset : offset;
                     localThumbHeight.current = h;
                     setThumbHeight(h);
                     setThumbTop(top);
@@ -2505,7 +2506,7 @@
 
                         {/* Content Area */}
                         <div className="content-area" ref={contentAreaRef}>
-                            <ScrollThumb scrollRef={contentAreaRef} color={themeColors[style] || '#4CAF50'} />
+                            <ScrollThumb scrollRef={contentAreaRef} color={themeColors[style] || '#4CAF50'} insideScroller={true} />
                             {currentView === 'notes' ? (
                                 <>
                                     {/* Filtro con BORDO SPESSO come screenshot */}
@@ -3502,7 +3503,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.22</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.23</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3542,15 +3543,17 @@
                     {/* Content Reader — apre il contenuto completo cliccando il testo in ricerca */}
                     {showContentReader && contentReaderNote && (
                         <div className="content-reader-overlay" onClick={() => setShowContentReader(false)}>
-                            <div className="content-reader-modal" onClick={e => e.stopPropagation()} style={{position:'relative'}}>
+                            <div className="content-reader-modal" onClick={e => e.stopPropagation()}>
                                 <div className="content-reader-header">
                                     <span className="content-reader-title">{contentReaderNote.title}</span>
                                     <button className="content-reader-close" onClick={() => setShowContentReader(false)}>✕</button>
                                 </div>
-                                <div className="content-reader-body" ref={contentReaderBodyRef}>
-                                    {highlightText(contentReaderNote.content || '', searchQuery)}
+                                <div style={{position:'relative', flex:'1 1 0%', minHeight:0, overflow:'hidden'}}>
+                                    <div className="content-reader-body" ref={contentReaderBodyRef}>
+                                        {highlightText(contentReaderNote.content || '', searchQuery)}
+                                    </div>
+                                    <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 </div>
-                                <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 <div className="content-reader-footer">
                                     <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
                                         ✏️ Modifica nota
