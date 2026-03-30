@@ -1272,6 +1272,7 @@
             const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
             const [showContentReader, setShowContentReader] = useState(false);
             const [contentReaderNote, setContentReaderNote] = useState(null);
+            const [highlightIndex, setHighlightIndex] = useState(0);
             const [showAddEdit, setShowAddEdit] = useState(false);
             const [showMenu, setShowMenu] = useState(false);
             const [showStyleSelector, setShowStyleSelector] = useState(false);
@@ -2207,16 +2208,24 @@
 
             const contentAreaRef = useRef(null);
             const contentReaderBodyRef = useRef(null);
+            const modalContentRef = useRef(null);
 
-            // Scroll alla prima parola evidenziata quando si apre il Content Reader
+            // Reset indice highlight quando si apre/cambia nota nel Content Reader
+            useEffect(() => {
+                if (showContentReader) {
+                    setHighlightIndex(0);
+                }
+            }, [showContentReader, contentReaderNote]);
+
+            // Scrolla all'highlight corrente nel Content Reader
             useEffect(() => {
                 if (showContentReader && contentReaderBodyRef.current) {
                     setTimeout(() => {
-                        const first = contentReaderBodyRef.current.querySelector('.highlight');
-                        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        const all = contentReaderBodyRef.current.querySelectorAll('.highlight');
+                        if (all[highlightIndex]) all[highlightIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }, 120);
                 }
-            }, [showContentReader, contentReaderNote]);
+            }, [highlightIndex, showContentReader]);
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -3016,7 +3025,8 @@
 
                         {/* Modal Aggiungi/Modifica */}
                         <div className={`modal ${showAddEdit ? 'show' : ''}`}>
-                            <div className="modal-content">
+                            <div className="modal-content" ref={modalContentRef} style={{position:'relative'}}>
+                                <ScrollThumb scrollRef={modalContentRef} color={themeColors[style] || '#4CAF50'} insideScroller={true} />
                                 <div className="modal-header">
                                     <h2>{editingNote ? 'Modifica Nota' : 'Nuova Nota'}</h2>
                                     <button className="close-btn" onClick={() => setShowAddEdit(false)}>×</button>
@@ -3503,7 +3513,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.24</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.25</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3555,6 +3565,30 @@
                                     <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 </div>
                                 <div className="content-reader-footer">
+                                    {(() => {
+                                        const total = contentReaderBodyRef.current
+                                            ? contentReaderBodyRef.current.querySelectorAll('.highlight').length
+                                            : 0;
+                                        return total > 1 ? (
+                                            <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'12px', marginBottom:'8px'}}>
+                                                <button
+                                                    onClick={() => setHighlightIndex(i => Math.max(0, i - 1))}
+                                                    disabled={highlightIndex === 0}
+                                                    style={{padding:'6px 14px', borderRadius:'20px', border:'none',
+                                                        background: highlightIndex === 0 ? '#ccc' : (themeColors[style]||'#4CAF50'),
+                                                        color:'white', fontWeight:'bold', fontSize:'16px', cursor: highlightIndex === 0 ? 'default' : 'pointer'}}
+                                                >‹</button>
+                                                <span style={{fontSize:'13px', color:'#666'}}>{highlightIndex + 1} / {total}</span>
+                                                <button
+                                                    onClick={() => setHighlightIndex(i => Math.min(total - 1, i + 1))}
+                                                    disabled={highlightIndex === total - 1}
+                                                    style={{padding:'6px 14px', borderRadius:'20px', border:'none',
+                                                        background: highlightIndex === total - 1 ? '#ccc' : (themeColors[style]||'#4CAF50'),
+                                                        color:'white', fontWeight:'bold', fontSize:'16px', cursor: highlightIndex === total - 1 ? 'default' : 'pointer'}}
+                                                >›</button>
+                                            </div>
+                                        ) : null;
+                                    })()}
                                     <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
                                         ✏️ Modifica nota
                                     </button>
