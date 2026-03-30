@@ -1273,6 +1273,7 @@
             const [showContentReader, setShowContentReader] = useState(false);
             const [contentReaderNote, setContentReaderNote] = useState(null);
             const [highlightIndex, setHighlightIndex] = useState(0);
+            const [highlightTotal, setHighlightTotal] = useState(0);
             const [showAddEdit, setShowAddEdit] = useState(false);
             const [showMenu, setShowMenu] = useState(false);
             const [showStyleSelector, setShowStyleSelector] = useState(false);
@@ -2211,21 +2212,29 @@
             const modalContentRef = useRef(null);
 
             // Reset indice highlight quando si apre/cambia nota nel Content Reader
+            // Effect 1 — apertura/cambio nota: conta highlights, resetta indice, scrolla al primo
             useEffect(() => {
                 if (showContentReader) {
-                    setHighlightIndex(0);
+                    setTimeout(() => {
+                        if (!contentReaderBodyRef.current) return;
+                        const all = contentReaderBodyRef.current.querySelectorAll('.highlight');
+                        setHighlightTotal(all.length);
+                        setHighlightIndex(0);
+                        if (all[0]) all[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 150);
+                } else {
+                    setHighlightTotal(0);
                 }
             }, [showContentReader, contentReaderNote]);
 
-            // Scrolla all'highlight corrente nel Content Reader
+            // Effect 2 — navigazione utente: scrolla all'occorrenza corrente
             useEffect(() => {
-                if (showContentReader && contentReaderBodyRef.current) {
-                    setTimeout(() => {
-                        const all = contentReaderBodyRef.current.querySelectorAll('.highlight');
-                        if (all[highlightIndex]) all[highlightIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 120);
-                }
-            }, [highlightIndex, showContentReader]);
+                if (!showContentReader || !contentReaderBodyRef.current) return;
+                setTimeout(() => {
+                    const all = contentReaderBodyRef.current?.querySelectorAll('.highlight');
+                    if (all?.[highlightIndex]) all[highlightIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 80);
+            }, [highlightIndex]);
 
             const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -3516,7 +3525,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.25</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.26</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3568,30 +3577,27 @@
                                     <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 </div>
                                 <div className="content-reader-footer">
-                                    {(() => {
-                                        const total = contentReaderBodyRef.current
-                                            ? contentReaderBodyRef.current.querySelectorAll('.highlight').length
-                                            : 0;
-                                        return total > 1 ? (
-                                            <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'12px', marginBottom:'8px'}}>
-                                                <button
-                                                    onClick={() => setHighlightIndex(i => Math.max(0, i - 1))}
-                                                    disabled={highlightIndex === 0}
-                                                    style={{padding:'6px 14px', borderRadius:'20px', border:'none',
-                                                        background: highlightIndex === 0 ? '#ccc' : (themeColors[style]||'#4CAF50'),
-                                                        color:'white', fontWeight:'bold', fontSize:'16px', cursor: highlightIndex === 0 ? 'default' : 'pointer'}}
-                                                >‹</button>
-                                                <span style={{fontSize:'13px', color:'#666'}}>{highlightIndex + 1} / {total}</span>
-                                                <button
-                                                    onClick={() => setHighlightIndex(i => Math.min(total - 1, i + 1))}
-                                                    disabled={highlightIndex === total - 1}
-                                                    style={{padding:'6px 14px', borderRadius:'20px', border:'none',
-                                                        background: highlightIndex === total - 1 ? '#ccc' : (themeColors[style]||'#4CAF50'),
-                                                        color:'white', fontWeight:'bold', fontSize:'16px', cursor: highlightIndex === total - 1 ? 'default' : 'pointer'}}
-                                                >›</button>
-                                            </div>
-                                        ) : null;
-                                    })()}
+                                    {highlightTotal > 1 && (
+                                        <div style={{display:'flex', alignItems:'center', justifyContent:'center', gap:'12px', marginBottom:'8px'}}>
+                                            <button
+                                                onClick={() => setHighlightIndex(i => Math.max(0, i - 1))}
+                                                disabled={highlightIndex === 0}
+                                                style={{padding:'6px 14px', borderRadius:'20px', border:'none',
+                                                    background: highlightIndex === 0 ? '#ccc' : (themeColors[style]||'#4CAF50'),
+                                                    color:'white', fontWeight:'bold', fontSize:'16px',
+                                                    cursor: highlightIndex === 0 ? 'default' : 'pointer'}}
+                                            >‹</button>
+                                            <span style={{fontSize:'13px', color:'#666'}}>{highlightIndex + 1} / {highlightTotal}</span>
+                                            <button
+                                                onClick={() => setHighlightIndex(i => Math.min(highlightTotal - 1, i + 1))}
+                                                disabled={highlightIndex === highlightTotal - 1}
+                                                style={{padding:'6px 14px', borderRadius:'20px', border:'none',
+                                                    background: highlightIndex === highlightTotal - 1 ? '#ccc' : (themeColors[style]||'#4CAF50'),
+                                                    color:'white', fontWeight:'bold', fontSize:'16px',
+                                                    cursor: highlightIndex === highlightTotal - 1 ? 'default' : 'pointer'}}
+                                            >›</button>
+                                        </div>
+                                    )}
                                     <button className="edit-content-btn" onClick={() => { setShowContentReader(false); editNote(contentReaderNote); }}>
                                         ✏️ Modifica nota
                                     </button>
