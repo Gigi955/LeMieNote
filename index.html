@@ -2288,19 +2288,32 @@
                 return result;
             };
 
-            const highlightText = (text, query) => {
+            const highlightText = (text, query, mode = 'all-words') => {
                 if (!query.trim() || !text) return text || '';
-                const words = query.trim().split(/\s+/).filter(w => w.length > 0);
                 try {
-                    const escapedWords = words.map(w => escapeRegex(w));
-                    const pattern = escapedWords.join('|');
-                    const parts = text.split(new RegExp(`(${pattern})`, 'gi'));
-                    const normWords = words.map(w => w.toLowerCase());
-                    return parts.map((part, i) =>
-                        normWords.some(w => part.toLowerCase() === w)
-                            ? <span key={i} className="highlight">{part}</span>
-                            : part
-                    );
+                    if (mode === 'phrase') {
+                        // Evidenzia la frase intera come unità singola
+                        const escaped = escapeRegex(query.trim());
+                        const parts = text.split(new RegExp(`(${escaped})`, 'gi'));
+                        const lowerQuery = query.trim().toLowerCase();
+                        return parts.map((part, i) =>
+                            part.toLowerCase() === lowerQuery
+                                ? <span key={i} className="highlight">{part}</span>
+                                : part
+                        );
+                    } else {
+                        // Modalità "Tutte le parole": evidenzia ogni parola singolarmente
+                        const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+                        const escapedWords = words.map(w => escapeRegex(w));
+                        const pattern = escapedWords.join('|');
+                        const parts = text.split(new RegExp(`(${pattern})`, 'gi'));
+                        const normWords = words.map(w => w.toLowerCase());
+                        return parts.map((part, i) =>
+                            normWords.some(w => part.toLowerCase() === w)
+                                ? <span key={i} className="highlight">{part}</span>
+                                : part
+                        );
+                    }
                 } catch (e) {
                     return text;
                 }
@@ -2725,10 +2738,10 @@
                                                         <span className={`note-category ${style}`}>{note.category}</span>
                                                     </div>
                                                     {note.theme && (
-                                                        <div className="note-theme">Tema: {highlightText(note.theme, searchQuery)}</div>
+                                                        <div className="note-theme">Tema: {highlightText(note.theme, searchQuery, searchMode)}</div>
                                                     )}
                                                     <div className={`note-title ${note.completed ? 'completed' : ''}`}>
-                                                        {highlightText(note.title, searchQuery)}
+                                                        {highlightText(note.title, searchQuery, searchMode)}
                                                     </div>
                                                     <div className="note-content"
                                                         style={{cursor:'pointer'}}
@@ -2736,7 +2749,8 @@
                                                     >
                                                         {highlightText(
                                                             getContentSnippet(note.content, searchQuery, searchMode),
-                                                            searchQuery
+                                                            searchQuery,
+                                                            searchMode
                                                         )}
                                                     </div>
                                                 </div>
@@ -3072,7 +3086,7 @@
                                     <label className="form-label" style={{fontSize: '15px', fontWeight: 'bold'}}>Tema (opzionale)</label>
                                     {searchQuery.trim() && !contentEditMode ? (
                                         <div className="content-highlight-view" style={{minHeight: '40px', fontSize: '18px', fontWeight: 'bold'}}>
-                                            {highlightText(formData.theme || '', searchQuery)}
+                                            {highlightText(formData.theme || '', searchQuery, searchMode)}
                                         </div>
                                     ) : (
                                         <input
@@ -3090,7 +3104,7 @@
                                     <label className="form-label">Titolo *</label>
                                     {searchQuery.trim() && !contentEditMode ? (
                                         <div className="content-highlight-view" style={{minHeight: '40px', fontWeight: 'bold'}}>
-                                            {highlightText(formData.title || '', searchQuery)}
+                                            {highlightText(formData.title || '', searchQuery, searchMode)}
                                         </div>
                                     ) : (
                                         <input
@@ -3108,7 +3122,7 @@
                                     {searchQuery.trim() && !contentEditMode ? (
                                         <>
                                             <div className="content-highlight-view">
-                                                {highlightText(formData.content || '', searchQuery)}
+                                                {highlightText(formData.content || '', searchQuery, searchMode)}
                                             </div>
                                             <button className="edit-content-btn" onClick={() => setContentEditMode(true)}>
                                                 ✏️ Modifica contenuto
@@ -3525,7 +3539,7 @@
                                 </div>
                                 
                                 <div style={{padding: '16px', borderTop: '1px solid #ddd', textAlign: 'center'}}>
-                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.26</p>
+                                    <p style={{fontSize: '12px', color: '#aaa', marginBottom: '12px'}}>Le Mie Note — versione 1.2.27</p>
                                     <button className={`btn btn-primary ${style}`} onClick={() => setShowHelp(false)}>
                                         Ho capito!
                                     </button>
@@ -3572,7 +3586,7 @@
                                 </div>
                                 <div style={{position:'relative', flex:'1 1 0%', minHeight:0, overflow:'hidden', display:'flex', flexDirection:'column'}}>
                                     <div className="content-reader-body" ref={contentReaderBodyRef}>
-                                        {highlightText(contentReaderNote.content || '', searchQuery)}
+                                        {highlightText(contentReaderNote.content || '', searchQuery, searchMode)}
                                     </div>
                                     <ScrollThumb scrollRef={contentReaderBodyRef} color={themeColors[style] || '#4CAF50'} />
                                 </div>
