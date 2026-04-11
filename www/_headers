@@ -1,0 +1,31 @@
+# Cloudflare Pages — Cache headers per LeMieNote
+# Docs: https://developers.cloudflare.com/pages/configuration/headers/
+
+# HTML principale: no-cache (controlla sempre aggiornamenti, SW serve dalla cache se offline)
+/index.html
+  Cache-Control: no-cache, must-revalidate
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+
+# Manifest PWA: breve cache
+/manifest.json
+  Cache-Control: public, max-age=86400
+
+# Icone: cache lunga (cambiano raramente)
+/icons/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Immagini
+/img/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Tutto il resto (CSS, JS statici)
+/*.css
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  Cache-Control: public, max-age=31536000, immutable
+
+# Service Worker: no-cache obbligatorio — DEVE stare dopo /*.js per vincere
+/sw.js
+  Cache-Control: no-cache, must-revalidate
