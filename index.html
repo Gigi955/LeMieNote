@@ -5,7 +5,7 @@
     <link rel="manifest" href="./manifest.json">
     <script>
       // Forza aggiornamento se è installato un vecchio service worker
-      var CURRENT_SW_VERSION = 'lemienote-v1.2.69';
+      var CURRENT_SW_VERSION = 'lemienote-v1.2.70';
       if ('serviceWorker' in navigator) {
         caches.keys().then(function(keys) {
           var hasCurrentVersion = keys.some(function(k) { return k === CURRENT_SW_VERSION; });
@@ -2688,7 +2688,7 @@ const App = () => {
           doc.setPage(i);
           doc.setFontSize(8);
           doc.setTextColor(170);
-          doc.text('Le Mie Note — versione 1.2.69', ML, 293);
+          doc.text('Le Mie Note — versione 1.2.70', ML, 293);
           doc.text('Pag. ' + i + ' / ' + pgs, 200, 293, { align: 'right' });
         }
       };
@@ -4543,7 +4543,7 @@ const App = () => {
     }
   }, "\uD83D\uDCDD Come usare l'app"), /*#__PURE__*/React.createElement("div", {
     style: { marginBottom: '16px', padding: '12px', background: '#fff3e0', borderRadius: '8px', border: '1px solid #ffb74d' }
-  }, /*#__PURE__*/React.createElement("strong", null, "\uD83C\uDD95 Novit\u00E0 v1.2.69"), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Cursore sempre visibile in modifica"), ": quando posizioni il cursore in mezzo a una nota lunga e inizi a scrivere, ora il cursore e il testo che digiti restano sempre visibili sopra la tastiera."), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Niente piu altre note sullo sfondo"), ": durante la modifica non si intravede piu il testo di altre note dietro l'editor; la schermata di modifica copre sempre l'intero schermo."), /*#__PURE__*/React.createElement("p", null, "\u2022 Il campo Contenuto ora cresce con il testo e scorre in modo fluido senza scatti.")),/*#__PURE__*/React.createElement("p", null, /*#__PURE__*/React.createElement("strong", null, "Creare una nota:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il pulsante ", /*#__PURE__*/React.createElement("strong", null, "+"), " in basso a destra"), /*#__PURE__*/React.createElement("p", null, "\u2022 Scegli la ", /*#__PURE__*/React.createElement("strong", null, "data"), ", la ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " e il ", /*#__PURE__*/React.createElement("strong", null, "tema")), /*#__PURE__*/React.createElement("p", null, "\u2022 Compila ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " e ", /*#__PURE__*/React.createElement("strong", null, "contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 I campi ", /*#__PURE__*/React.createElement("strong", null, "Tema"), " e ", /*#__PURE__*/React.createElement("strong", null, "Titolo"), " vengono convertiti automaticamente in ", /*#__PURE__*/React.createElement("strong", null, "MAIUSCOLO")), /*#__PURE__*/React.createElement("p", null, "\u2022 Salva con il pulsante verde"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "\uD83C\uDD95 Novit\u00E0 v1.2.70"), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Cursore sempre visibile (corretto sul serio)"), ": ora la posizione del cursore viene calcolata tenendo conto anche delle righe che vanno a capo da sole. Quando scrivi in mezzo a una nota lunga, il cursore e il testo che digiti restano sempre visibili sopra la tastiera."), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Niente piu altre note sullo sfondo"), ": durante la modifica non si intravede piu il testo di altre note dietro l'editor; la schermata di modifica copre sempre l'intero schermo."), /*#__PURE__*/React.createElement("p", null, "\u2022 Il campo Contenuto cresce con il testo e scorre in modo fluido senza scatti.")),/*#__PURE__*/React.createElement("p", null, /*#__PURE__*/React.createElement("strong", null, "Creare una nota:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il pulsante ", /*#__PURE__*/React.createElement("strong", null, "+"), " in basso a destra"), /*#__PURE__*/React.createElement("p", null, "\u2022 Scegli la ", /*#__PURE__*/React.createElement("strong", null, "data"), ", la ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " e il ", /*#__PURE__*/React.createElement("strong", null, "tema")), /*#__PURE__*/React.createElement("p", null, "\u2022 Compila ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " e ", /*#__PURE__*/React.createElement("strong", null, "contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 I campi ", /*#__PURE__*/React.createElement("strong", null, "Tema"), " e ", /*#__PURE__*/React.createElement("strong", null, "Titolo"), " vengono convertiti automaticamente in ", /*#__PURE__*/React.createElement("strong", null, "MAIUSCOLO")), /*#__PURE__*/React.createElement("p", null, "\u2022 Salva con il pulsante verde"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
@@ -4610,7 +4610,7 @@ const App = () => {
       color: '#aaa',
       marginBottom: '12px'
     }
-  }, "Le Mie Note \u2014 versione 1.2.69"), /*#__PURE__*/React.createElement("button", {
+  }, "Le Mie Note \u2014 versione 1.2.70"), /*#__PURE__*/React.createElement("button", {
     className: `btn btn-primary ${style}`,
     onClick: () => setShowHelp(false)
   }, "Ho capito!"))))), autoBackupToast && /*#__PURE__*/React.createElement("div", {
@@ -4929,35 +4929,66 @@ const setRealVH = () => {
   document.documentElement.style.setProperty('--real-vh', h + 'px');
 };
 
+// Misura la posizione verticale REALE del caret dentro la textarea, tenendo
+// conto dell'a-capo automatico (word wrap). Contare solo i '\n' non bastava:
+// con righe lunghe che vanno a capo da sole il caret e molto piu in basso di
+// quanto stimato, ed e per questo che "spariva" sotto la tastiera.
+// Tecnica: si ricrea il testo in un <div> nascosto con lo STESSO stile/larghezza
+// della textarea e si misura dove finisce il testo fino al cursore.
+const getCaretTopInTextarea = (ta) => {
+  const sel = ta.selectionStart || 0;
+  const style = window.getComputedStyle(ta);
+  const mirror = document.createElement('div');
+  const props = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontVariant',
+    'letterSpacing', 'lineHeight', 'textTransform', 'wordSpacing', 'textIndent',
+    'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+    'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth'];
+  props.forEach(p => { mirror.style[p] = style[p]; });
+  mirror.style.boxSizing = style.boxSizing;
+  mirror.style.width = ta.offsetWidth + 'px';     // stessa larghezza => stesso a-capo
+  mirror.style.position = 'absolute';
+  mirror.style.top = '0';
+  mirror.style.left = '-9999px';
+  mirror.style.height = 'auto';
+  mirror.style.visibility = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.style.overflowWrap = 'break-word';
+  mirror.style.wordBreak = style.wordBreak;
+  mirror.textContent = ta.value.substring(0, sel);
+  const marker = document.createElement('span');
+  marker.textContent = ta.value.substring(sel) || '.';
+  mirror.appendChild(marker);
+  document.body.appendChild(mirror);
+  const top = marker.offsetTop;   // distanza del caret dal bordo superiore della textarea
+  document.body.removeChild(mirror);
+  return top;
+};
+
 const scrollCursorAboveKeyboard = () => {
   const activeEl = document.activeElement;
   if (!activeEl || (activeEl.tagName !== 'TEXTAREA' && activeEl.tagName !== 'INPUT')) return;
   const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const lineHeight = parseFloat(window.getComputedStyle(activeEl).lineHeight) || 22;
+  const rect = activeEl.getBoundingClientRect();
   let cursorTop, cursorBottom;
   if (activeEl.tagName === 'TEXTAREA' && activeEl.selectionStart != null) {
-    const style = window.getComputedStyle(activeEl);
-    const lineHeight = parseFloat(style.lineHeight) || 22;
-    const paddingTop = parseFloat(style.paddingTop) || 0;
-    const textBeforeCursor = activeEl.value.substring(0, activeEl.selectionStart);
-    const lines = textBeforeCursor.split('\n').length;
-    const rect = activeEl.getBoundingClientRect();
-    // IMPORTANTE: sottrai lo scroll interno della textarea, altrimenti la
-    // posizione del caret viene calcolata sbagliata e il cursore "sparisce".
-    cursorTop = rect.top + paddingTop + (lines - 1) * lineHeight - activeEl.scrollTop;
+    // Posizione reale del caret (gestisce correttamente le righe mandate a capo).
+    const caretTop = getCaretTopInTextarea(activeEl);
+    cursorTop = rect.top + caretTop - activeEl.scrollTop;
     cursorBottom = cursorTop + lineHeight;
   } else {
-    const rect = activeEl.getBoundingClientRect();
     cursorTop = rect.top;
     cursorBottom = rect.bottom;
   }
   const scroller = activeEl.closest('.modal-content') || activeEl.closest('.content-area');
   if (!scroller) return;
-  if (cursorBottom > vvHeight - 60) {
-    // Il cursore e nascosto dalla tastiera: scorri verso il basso.
-    scroller.scrollTop += cursorBottom - (vvHeight - 60);
-  } else if (cursorTop < 70) {
+  const margin = 40;
+  if (cursorBottom > vvHeight - margin) {
+    // Il cursore e nascosto dalla tastiera: scorri verso il basso per mostrarlo.
+    scroller.scrollTop += cursorBottom - (vvHeight - margin);
+  } else if (cursorTop < 80) {
     // Il cursore e finito sopra l'area visibile: scorri verso l'alto.
-    scroller.scrollTop += cursorTop - 70;
+    scroller.scrollTop += cursorTop - 80;
   }
 };
 

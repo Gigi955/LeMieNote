@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lemienote-v1.2.69';
+const CACHE_VERSION = 'lemienote-v1.2.70';
 
 const STATIC_ASSETS = [
   './',
