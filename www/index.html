@@ -5,7 +5,7 @@
     <link rel="manifest" href="./manifest.json">
     <script>
       // Forza aggiornamento se è installato un vecchio service worker
-      var CURRENT_SW_VERSION = 'lemienote-v1.2.40';
+      var CURRENT_SW_VERSION = 'lemienote-v1.2.75';
       if ('serviceWorker' in navigator) {
         caches.keys().then(function(keys) {
           var hasCurrentVersion = keys.some(function(k) { return k === CURRENT_SW_VERSION; });
@@ -35,12 +35,12 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="format-detection" content="telephone=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: gap: https://unpkg.com; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *; media-src 'self' data: blob: *; connect-src 'self' https://unpkg.com *;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: gap:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: *; media-src 'self' data: blob: *; connect-src 'self' *;">
     <title>Le Mie Note</title>
     <script src="cordova.js"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="./js/react.production.min.js"></script>
+    <script src="./js/react-dom.production.min.js"></script>
+    <script src="./js/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -328,7 +328,7 @@
         }
 
         /* Notes */
-        .notes-container { padding: 8px; }
+        .notes-container { padding: 8px 8px 150px 8px; }
 
         .note-card {
             background: white;
@@ -337,6 +337,7 @@
             margin-bottom: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
+            position: relative;
         }
 
         .dark .note-card {
@@ -377,6 +378,7 @@
             color: #555;
             font-weight: 600;
             margin-bottom: 4px;
+            padding-right: 56px;
         }
         .dark .note-theme { color: #ccc; }
 
@@ -385,6 +387,7 @@
             font-weight: bold;
             margin-bottom: 4px;
             color: #000;
+            padding-right: 56px;
         }
 
         .dark .note-title { color: #fff; }
@@ -399,6 +402,7 @@
             color: #757575;
             margin-bottom: 8px;
             line-height: 1.4;
+            padding-right: 56px;
         }
 
         .dark .note-content { color: #b0b0b0; }
@@ -516,6 +520,20 @@
 
         .dark .modal-content { background: #1e1e1e; }
 
+        .modal-content.fullscreen {
+            max-width: 100%;
+            width: 100%;
+            max-height: 100vh;
+            height: 100vh;
+            margin: 0;
+            border-radius: 0;
+            padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px) 16px;
+        }
+        /* In modalita fullscreen l'overlay deve coprire SEMPRE l'intero schermo
+           e restare opaco, cosi non si intravede mai la lista delle note (o altre note) dietro. */
+        .modal:has(.modal-content.fullscreen) { padding: 0; height: 100vh; background: #fff; }
+        .dark .modal:has(.modal-content.fullscreen) { background: #1e1e1e; }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -528,12 +546,17 @@
         .close-btn {
             background: none;
             border: none;
-            font-size: 28px;
+            font-size: 40px;
+            line-height: 1;
             cursor: pointer;
-            color: #757575;
+            color: #424242;
+            padding: 4px 10px;
+            min-width: 44px;
+            min-height: 44px;
+            font-weight: bold;
         }
 
-        .dark .close-btn { color: #b0b0b0; }
+        .dark .close-btn { color: #e0e0e0; }
 
         /* Form */
         .form-group { margin-bottom: 16px; }
@@ -564,10 +587,9 @@
         }
 
         .form-textarea {
-            min-height: 300px;
+            min-height: 55vh;
             resize: none;
-            overflow: hidden;
-            -webkit-overflow-scrolling: touch;
+            overflow-y: hidden;
         }
 
         .switch-container {
@@ -711,8 +733,52 @@
             border: 2px solid;
             border-radius: 8px;
             font-size: 16px;
-            margin: 16px;
-            max-width: calc(100% - 32px);
+            margin: 16px 0;
+            max-width: 100%;
+        }
+
+        .search-input-wrapper { position: relative; margin: 0 16px; }
+
+        .search-history-dropdown {
+            left: 0;
+            right: 0;
+            top: 100%;
+            margin-top: 0;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .search-history-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .search-history-item-text {
+            flex: 1 1 auto;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .search-history-item-remove {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            font-size: 16px;
+            line-height: 1;
+            color: #999;
+            cursor: pointer;
+            padding: 4px 6px;
+        }
+        .search-history-item-remove:hover { color: #f44336; }
+        .dark .search-history-item-remove { color: #777; }
+
+        .search-history-clear {
+            text-align: center;
+            font-size: 12px;
+            color: #f44336;
+            font-weight: 500;
         }
 
         .search-input.modern { border-color: #2196F3; }
@@ -743,6 +809,81 @@
             display: flex;
             justify-content: flex-end;
             padding: 0 16px 8px 16px;
+        }
+        .pdf-selection-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px 16px 12px 16px;
+            background: rgba(0,0,0,0.03);
+            border-top: 1px solid rgba(0,0,0,0.06);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+        .pdf-selection-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #555;
+        }
+        .pdf-selection-link {
+            background: transparent;
+            border: 1px solid #bbb;
+            color: #333;
+            padding: 4px 10px;
+            border-radius: 14px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .pdf-selection-link:hover { background: #eee; }
+        .pdf-actions-row {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-pdf-action {
+            flex: 1;
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-pdf-action:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-pdf-save { background: #1976D2; }
+        .search-select-wrap {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,255,255,0.92);
+            border-radius: 12px;
+            padding: 3px 8px 3px 4px;
+            z-index: 2;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .search-select-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .search-select-checkbox.modern { accent-color: #2196F3; }
+        .search-select-checkbox.nature { accent-color: #4CAF50; }
+        .search-select-checkbox.ocean { accent-color: #00BCD4; }
+        .search-select-checkbox.sunset { accent-color: #FF5722; }
+        .search-select-checkbox.minimal { accent-color: #607D8B; }
+        .search-select-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #555;
+            letter-spacing: 0.5px;
         }
         .mode-btn {
             padding: 5px 14px;
@@ -804,6 +945,55 @@
             padding: 4px 12px;
             cursor: pointer;
             margin-bottom: 8px;
+            margin-left: 8px;
+        }
+
+        .text-highlight {
+            padding: 1px 2px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        .highlight-color-picker {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 8px 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 8px;
+        }
+
+        .dark .highlight-color-picker {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+
+        .highlight-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(0,0,0,0.15);
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .highlight-swatch.remove {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            background: #eee;
+            color: #666;
+            border-color: #ccc;
+        }
+
+        .dark .highlight-swatch.remove {
+            background: #3a3a3a;
+            color: #ccc;
+            border-color: #555;
         }
 
         /* Content Reader Modal */
@@ -845,7 +1035,9 @@
 
         /* Calendar */
         .calendar-container {
-            padding: 16px;
+            padding: 12px;
+            overflow: hidden;
+            width: 100%;
         }
 
         .calendar-header {
@@ -886,8 +1078,8 @@
 
         .calendar-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 2px;
             margin-bottom: 20px;
         }
 
@@ -1191,7 +1383,7 @@ function ScrollThumb({
         setVisible(false);
         return;
       }
-      const h = Math.max(40, clientHeight / scrollHeight * clientHeight);
+      const h = Math.min(50, Math.max(36, clientHeight / scrollHeight * clientHeight));
       const offset = scrollTop / (scrollHeight - clientHeight) * (clientHeight - h);
       const top = insideScroller ? scrollTop + offset : offset;
       localThumbHeight.current = h;
@@ -1199,9 +1391,6 @@ function ScrollThumb({
       setThumbTop(top);
       setVisible(true);
       clearTimeout(hideTimer.current);
-      if (!dragging.current) {
-        hideTimer.current = setTimeout(() => setVisible(false), 1500);
-      }
     };
     el.addEventListener('scroll', update, {
       passive: true
@@ -1232,7 +1421,6 @@ function ScrollThumb({
     };
     const onUp = () => {
       dragging.current = false;
-      hideTimer.current = setTimeout(() => setVisible(false), 1500);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
@@ -1240,24 +1428,37 @@ function ScrollThumb({
     window.addEventListener('pointerup', onUp);
   };
   if (!visible) return null;
+  const r = Math.round(thumbHeight / 2);
+  const w = r;
   return React.createElement('div', {
     style: {
       position: 'absolute',
       right: 0,
       top: thumbTop,
-      width: 22,
+      width: w,
       height: thumbHeight,
       background: color || '#4CAF50',
-      opacity: 0.7,
-      borderRadius: '12px 0 0 12px',
+      opacity: 0.8,
+      borderRadius: r + 'px 0 0 ' + r + 'px',
       cursor: 'grab',
       zIndex: 20,
       touchAction: 'none',
-      boxShadow: '-2px 0 6px rgba(0,0,0,0.2)',
-      userSelect: 'none'
+      boxShadow: '-2px 0 6px rgba(0,0,0,0.25)',
+      userSelect: 'none',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     onPointerDown
-  });
+  }, React.createElement('div', {
+    style: {
+      width: 3,
+      height: Math.round(thumbHeight * 0.35),
+      borderLeft: '1.5px solid rgba(255,255,255,0.5)',
+      borderRight: '1.5px solid rgba(255,255,255,0.5)',
+      marginLeft: 1
+    }
+  }));
 }
 const themeColors = {
   modern: '#2196F3',
@@ -1265,6 +1466,13 @@ const themeColors = {
   ocean: '#00BCD4',
   sunset: '#FF5722',
   minimal: '#607D8B'
+};
+const highlightColors = {
+  giallo: { light: '#fff176', dark: '#f9a825' },
+  verde: { light: '#a5d6a7', dark: '#66bb6a' },
+  azzurro: { light: '#81d4fa', dark: '#29b6f6' },
+  rosa: { light: '#f48fb1', dark: '#ec407a' },
+  arancione: { light: '#ffcc80', dark: '#ffa726' }
 };
 // ====================================
 
@@ -1289,11 +1497,27 @@ const App = () => {
   const [notes, setNotes] = useState([]);
   const [categories, setCategories] = useState(() => {
     const saved = localStorage.getItem('notesAppCategories');
-    return saved ? JSON.parse(saved) : ['Finanze', 'Giardino', 'Programmi ai', 'Ricerche', 'Tdg', 'Varie'];
+    if (saved) {
+      try { return JSON.parse(saved); }
+      catch (e) { console.error('Errore parsing categorie:', e); }
+    }
+    return ['Finanze', 'Giardino', 'Programmi ai', 'Ricerche', 'Tdg', 'Varie'];
   });
   const [selectedFilter, setSelectedFilter] = useState('Tutto');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [searchMode, setSearchMode] = useState('all-words'); // 'all-words' | 'phrase'
+  const [searchScope, setSearchScope] = useState('all'); // 'all' | 'title-theme'
+  const [searchHistory, setSearchHistory] = useState(() => {
+    const saved = localStorage.getItem('notesAppSearchHistory');
+    if (saved) {
+      try { return JSON.parse(saved); }
+      catch (e) { console.error('Errore parsing cronologia ricerche:', e); }
+    }
+    return [];
+  });
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const [selectedForPDF, setSelectedForPDF] = useState(() => new Set());
   const [sortMode, setSortMode] = useState('date'); // 'date' | 'category' | 'alphabetical'
   const [categorySortBy, setCategorySortBy] = useState('date'); // 'date' | 'theme' | 'title'
   const [showContentReader, setShowContentReader] = useState(false);
@@ -1328,6 +1552,8 @@ const App = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showReminderPicker, setShowReminderPicker] = useState(false);
   const [contentEditMode, setContentEditMode] = useState(false);
+  const [highlightMode, setHighlightMode] = useState(false);
+  const [pendingSelection, setPendingSelection] = useState(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [pickerMonth, setPickerMonth] = useState(new Date());
@@ -1423,6 +1649,10 @@ const App = () => {
   const isInitialLoad = useRef(true);
   const searchDebounceTimer = useRef(null);
   const searchInputRef = useRef(null);
+  const searchHistoryTimer = useRef(null);
+  const prevViewRef = useRef(currentView);
+  const textareaRef = useRef(null);
+  const highlightViewRef = useRef(null);
   useEffect(() => {
     if (isInitialLoad.current) {
       isInitialLoad.current = false;
@@ -1436,9 +1666,9 @@ const App = () => {
     });
   }, [notes]);
 
-  // Azzera l'input di ricerca quando searchQuery viene resettato dall'esterno
+  // Sincronizza searchInputValue con searchQuery quando viene resettato dall'esterno
   useEffect(() => {
-    if (!searchQuery && searchInputRef.current) searchInputRef.current.value = '';
+    if (!searchQuery) setSearchInputValue('');
   }, [searchQuery]);
 
   // Salva tema
@@ -1475,6 +1705,44 @@ const App = () => {
     localStorage.setItem('notesAppCategories', JSON.stringify(categories));
     console.log('📁 Categorie salvate:', categories.length);
   }, [categories]);
+
+  // Salva cronologia ricerche
+  useEffect(() => {
+    localStorage.setItem('notesAppSearchHistory', JSON.stringify(searchHistory));
+    console.log('🔎 Cronologia ricerche salvata:', searchHistory.length);
+  }, [searchHistory]);
+
+  // Inizializza altezza textarea contenuto quando si apre la modale.
+  // La textarea cresce in altezza con il contenuto (nessuno scroll interno):
+  // l'unico contenitore che scorre e la modale, cosi il caret resta sempre calcolabile.
+  useEffect(() => {
+    if (showAddEdit && textareaRef.current) {
+      const ta = textareaRef.current;
+      requestAnimationFrame(() => {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+      });
+    }
+    return () => { stopCaretPoll(); };
+  }, [showAddEdit]);
+
+  // Auto-resize textarea ad ogni modifica del contenuto e mantieni il cursore
+  // visibile sopra la tastiera facendo scorrere la modale (non la textarea).
+  useEffect(() => {
+    if (!showAddEdit) return;
+    const ta = textareaRef.current;
+    if (!ta) return;
+    // Ricalcolo dell'altezza: salva/ripristina lo scroll della modale, altrimenti
+    // il momentaneo height:auto fa "saltare" lo scroll e il cursore lampeggia/sparisce.
+    const sc = getEffectiveScroller(ta);
+    const savedScroll = sc ? sc.scrollTop : 0;
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
+    if (sc) sc.scrollTop = savedScroll;
+    if (document.activeElement === ta) {
+      requestAnimationFrame(scrollCursorAboveKeyboard);
+    }
+  }, [formData.content, showAddEdit]);
 
   // Persistenza impostazioni backup automatico
   useEffect(() => { localStorage.setItem('notesAppAutoBackup', autoBackupEnabled ? 'true' : 'false'); }, [autoBackupEnabled]);
@@ -1526,7 +1794,7 @@ const App = () => {
     setEditingNote(null);
     setFormData({
       date: new Date().toLocaleDateString('it-IT'),
-      category: categories[0],
+      category: categories[0] || 'Varie',
       theme: '',
       title: '',
       content: '',
@@ -1535,16 +1803,22 @@ const App = () => {
       reminderDateTime: '',
       reminderEnabled: false,
       reminderRingtoneUri: localStorage.getItem('notesAppRingtoneUri') || '',
-      completed: false
+      completed: false,
+      highlights: []
     });
+    setHighlightMode(false);
+    setPendingSelection(null);
     setShowAddEdit(true);
   };
   const editNote = note => {
+    setShowContentReader(false);
     setEditingNote(note);
     setFormData({
       ...note
     });
     setContentEditMode(false);
+    setHighlightMode(false);
+    setPendingSelection(null);
     setShowAddEdit(true);
   };
   const saveNote = () => {
@@ -1552,17 +1826,20 @@ const App = () => {
       alert('Inserisci un titolo!');
       return;
     }
+    const normalizedTitle = (formData.title || '').toUpperCase().trim();
     let savedNoteId;
     if (editingNote) {
       savedNoteId = editingNote.id;
       setNotes(notes.map(n => n.id === editingNote.id ? {
         ...formData,
+        title: normalizedTitle,
         id: n.id
       } : n));
     } else {
       savedNoteId = Date.now();
       setNotes([...notes, {
         ...formData,
+        title: normalizedTitle,
         id: savedNoteId
       }]);
     }
@@ -1618,17 +1895,60 @@ const App = () => {
       completed: !n.completed
     } : n));
   };
+  // v1.2.72 — Ricomprime un'immagine (data URL) ridisegnandola su canvas:
+  // lato massimo ~1280 px + JPEG qualità 0.6. Riduce drasticamente la dimensione
+  // base64 salvata nelle note (da ~300-800 KB a ~80-150 KB), così il dataset e i
+  // backup restano gestibili ed evitano l'OutOfMemoryError in scrittura.
+  const compressImageDataUrl = (dataUrl, maxDim = 1280, quality = 0.6) => {
+    return new Promise(resolve => {
+      try {
+        if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) {
+          resolve(dataUrl);
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          try {
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (!w || !h) { resolve(dataUrl); return; }
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const out = canvas.toDataURL('image/jpeg', quality);
+            // Usa il risultato solo se davvero più piccolo dell'originale.
+            resolve(out && out.length < dataUrl.length ? out : dataUrl);
+          } catch (e) {
+            console.warn('Compressione immagine fallita:', e);
+            resolve(dataUrl);
+          }
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      } catch (e) {
+        resolve(dataUrl);
+      }
+    });
+  };
   const takePhoto = () => {
     // Usa plugin Cordova Camera se disponibile (apre SOLO la fotocamera)
     if (window.navigator && navigator.camera && navigator.camera.getPicture) {
       navigator.camera.getPicture(imageData => {
         console.log('📸 Foto scattata con fotocamera nativa');
         const imgSrc = 'data:image/jpeg;base64,' + imageData;
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, imgSrc]
-        }));
-        console.log(`✅ Foto aggiunta (${Math.round(imageData.length / 1024)}KB)`);
+        compressImageDataUrl(imgSrc).then(finalSrc => {
+          setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, finalSrc]
+          }));
+          console.log(`✅ Foto aggiunta (${Math.round(finalSrc.length / 1024)}KB compressa)`);
+        });
       }, error => {
         if (error !== 'Camera cancelled.' && error !== 'No Image Selected') {
           console.error('❌ Errore fotocamera:', error);
@@ -1658,11 +1978,13 @@ const App = () => {
           console.log('📸 Scatto foto in corso...');
           const reader = new FileReader();
           reader.onloadend = () => {
-            setFormData(prev => ({
-              ...prev,
-              images: [...prev.images, reader.result]
-            }));
-            console.log(`✅ Foto scattata (${Math.round(reader.result.length / 1024)}KB)`);
+            compressImageDataUrl(reader.result).then(finalSrc => {
+              setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, finalSrc]
+              }));
+              console.log(`✅ Foto scattata (${Math.round(finalSrc.length / 1024)}KB compressa)`);
+            });
           };
           reader.onerror = error => {
             console.error('❌ Errore scatto foto:', error);
@@ -1682,10 +2004,12 @@ const App = () => {
       navigator.camera.getPicture(imageData => {
         console.log('🖼️ Immagine da galleria via plugin nativo');
         const imgSrc = 'data:image/jpeg;base64,' + imageData;
-        setFormData(prev => ({
-          ...prev,
-          images: [...prev.images, imgSrc]
-        }));
+        compressImageDataUrl(imgSrc).then(finalSrc => {
+          setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, finalSrc]
+          }));
+        });
       }, error => {
         if (error !== 'Camera cancelled.' && error !== 'No Image Selected' && error !== 'Selection cancelled.') {
           console.error('❌ Errore galleria:', error);
@@ -1717,17 +2041,26 @@ const App = () => {
           files.forEach(file => {
             const reader = new FileReader();
             reader.onloadend = () => {
-              newImages.push(reader.result);
+              compressImageDataUrl(reader.result).then(finalSrc => {
+                newImages.push(finalSrc);
+                loadedCount++;
+                if (loadedCount === files.length) {
+                  setFormData(prev => ({
+                    ...prev,
+                    images: [...prev.images, ...newImages]
+                  }));
+                }
+              });
+            };
+            reader.onerror = error => {
+              console.error('❌ Errore caricamento immagine:', error);
               loadedCount++;
-              if (loadedCount === files.length) {
+              if (loadedCount === files.length && newImages.length) {
                 setFormData(prev => ({
                   ...prev,
                   images: [...prev.images, ...newImages]
                 }));
               }
-            };
-            reader.onerror = error => {
-              console.error('❌ Errore caricamento immagine:', error);
             };
             reader.readAsDataURL(file);
           });
@@ -1755,8 +2088,22 @@ const App = () => {
         document.body.removeChild(input);
         return;
       }
-      let remaining = files.length;
-      files.forEach(file => {
+      // v1.2.72 — Limite dimensione: un singolo allegato troppo grande, salvato in
+      // base64, può da solo causare OutOfMemoryError in apertura/condivisione/export.
+      const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024; // 25 MB
+      const tooBig = files.filter(f => f.size > MAX_ATTACHMENT_BYTES);
+      const okFiles = files.filter(f => f.size <= MAX_ATTACHMENT_BYTES);
+      if (tooBig.length > 0) {
+        alert('⚠️ Allegato troppo grande (max 25 MB):\n\n' +
+          tooBig.map(f => '• ' + f.name + ' (' + Math.round(f.size / 1024 / 1024) + ' MB)').join('\n') +
+          '\n\nQuesti file non sono stati aggiunti per evitare il blocco dell\'app.');
+      }
+      if (okFiles.length === 0) {
+        document.body.removeChild(input);
+        return;
+      }
+      let remaining = okFiles.length;
+      okFiles.forEach(file => {
         const reader = new FileReader();
         reader.onloadend = () => {
           setFormData(prev => ({
@@ -1770,7 +2117,7 @@ const App = () => {
           }));
           remaining--;
           if (remaining === 0) {
-            console.log(`✅ ${files.length} allegati aggiunti`);
+            console.log(`✅ ${okFiles.length} allegati aggiunti`);
           }
         };
         reader.readAsDataURL(file);
@@ -1785,6 +2132,52 @@ const App = () => {
       ...formData,
       attachments: (formData.attachments || []).filter((_, i) => i !== index)
     });
+  };
+  const shareAttachment = async att => {
+    try {
+      // 1) Cordova SocialSharing plugin — accetta direttamente data URI, gestisce il picker Android
+      if (window.plugins && window.plugins.socialsharing) {
+        window.plugins.socialsharing.shareWithOptions({
+          subject: att.name,
+          files: [att.data]
+        }, () => {}, err => {
+          if (err && /cancel/i.test(String(err))) return;
+          alert('❌ Condivisione fallita: ' + err);
+        });
+        return;
+      }
+
+      const base64 = att.data.includes(',') ? att.data.split(',')[1] : att.data;
+      const byteStr = atob(base64);
+      const ab = new ArrayBuffer(byteStr.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i);
+      const mime = att.type || 'application/octet-stream';
+      const blob = new Blob([ab], { type: mime });
+      const file = new File([blob], att.name, { type: mime });
+
+      // 2) Web Share API (browser moderni / iOS)
+      if (navigator.share) {
+        try {
+          await navigator.share({ files: [file], title: att.name });
+          return;
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+          console.warn('navigator.share(files) fallita:', e);
+        }
+      }
+
+      // 3) Browser desktop: scarica il file
+      const a = document.createElement('a');
+      a.href = att.data;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      alert('❌ Condivisione fallita: ' + (e && e.message ? e.message : e));
+    }
   };
   const openAttachment = att => {
     // Immagini → lightbox esistente
@@ -1873,15 +2266,18 @@ const App = () => {
     if (currentView === 'search' && searchQuery.trim()) {
       const words = searchQuery.trim().split(/\s+/).filter(w => w.length > 0);
       const normWords = words.map(normalizeText);
+      const getFields = n => searchScope === 'title-theme'
+        ? [n.title, n.theme].map(f => normalizeText(f))
+        : [n.title, n.content, n.category, n.theme, n.date].map(f => normalizeText(f));
       if (searchMode === 'phrase') {
         const normPhrase = normalizeText(searchQuery.trim());
         filtered = filtered.filter(n => {
-          const fields = [n.title, n.content, n.category, n.theme, n.date].map(f => normalizeText(f));
+          const fields = getFields(n);
           return fields.some(field => field.includes(normPhrase));
         });
       } else {
         filtered = filtered.filter(n => {
-          const fields = [n.title, n.content, n.category, n.theme, n.date].map(f => normalizeText(f));
+          const fields = getFields(n);
           return normWords.every(word => fields.some(field => field.includes(word)));
         });
       }
@@ -1928,7 +2324,7 @@ const App = () => {
         const k = catSortKey[cat];
         if (!k) return Infinity;
         if (k.future !== null) return k.future; // future: ordine crescente da oggi
-        if (k.past !== null) return k.past + 1e15; // past: dopo tutte le future, ordine crescente
+        if (k.past !== null) return 2e15 - k.past; // past: dopo tutte le future, ordine decrescente (più recente prima)
         return Infinity;
       };
       return [...filtered].sort((a, b) => {
@@ -1997,6 +2393,10 @@ const App = () => {
     });
   };
   const writeFileToDir = (dirPath, filename, jsonString, onSuccess, onError) => {
+    if (!dirPath || typeof dirPath !== 'string') {
+      onError && onError({ code: 'DIR_PATH_NULL' });
+      return;
+    }
     window.resolveLocalFileSystemURL(dirPath, function (dirEntry) {
       dirEntry.getFile(filename, {
         create: true,
@@ -2015,90 +2415,482 @@ const App = () => {
       }, onError);
     }, onError);
   };
+  // Helper universale di salvataggio con cascata a più percorsi (v1.2.52)
+  // Garantisce che PDF e JSON siano sempre salvati o mostrati all'utente,
+  // anche quando cordova.file.* sono null (Xiaomi/MIUI + scoped storage).
+  const saveFileWithFallbacks = (blob, filename, mimeType, opts) => {
+    opts = opts || {};
+    const successPrefix = opts.successPrefix || 'File salvato';
+    const silent = !!opts.silent;
+    const textForClipboard = opts.textForClipboard || null;
+    const isPDF = /pdf/i.test(mimeType || '');
+    const isCordova = !!(window.cordova && window.resolveLocalFileSystemURL);
+
+    // Browser (PWA/Cloudflare Pages): download classico con anchor
+    if (!isCordova) {
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        if (!silent) setTimeout(() => alert('✅ ' + successPrefix + ': ' + filename + '\nControlla la cartella Download.'), 300);
+      } catch (e) {
+        if (!silent) alert('❌ Download browser fallito: ' + (e && e.message ? e.message : e));
+      }
+      return;
+    }
+
+    let done = false;
+    const errors = [];
+    const finishSuccess = (label, fullPath) => {
+      if (done) return;
+      done = true;
+      clearTimeout(safety);
+      if (silent) { opts.onSuccess && opts.onSuccess(fullPath); return; }
+      alert('✅ ' + successPrefix + '!\n\n📁 ' + label + '\n📄 ' + filename + (fullPath ? '\n\n📂 ' + fullPath : ''));
+      opts.onSuccess && opts.onSuccess(fullPath);
+    };
+
+    // v1.2.57 — PRIMO TENTATIVO: bridge nativo MediaStore (Android 10+)
+    // Bypassa lo Scoped Storage che blocca tutti i cordova.file.* su Xiaomi/MIUI.
+    // Il file finisce realmente nella cartella Download pubblica, visibile da File Manager.
+    const tryAndroidDownloadsBridge = () => {
+      return new Promise((resolve) => {
+        if (!window.AndroidDownloads || typeof window.AndroidDownloads.saveToDownloads !== 'function') {
+          resolve(false);
+          return;
+        }
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              // reader.result = "data:mime;base64,XXXX" → estrai solo XXXX
+              const dataUrl = reader.result || '';
+              const commaIdx = dataUrl.indexOf(',');
+              const b64 = commaIdx >= 0 ? dataUrl.substring(commaIdx + 1) : '';
+              const result = window.AndroidDownloads.saveToDownloads(b64, filename, mimeType || 'application/octet-stream');
+              if (typeof result === 'string' && result.indexOf('OK:') === 0) {
+                finishSuccess('cartella Download (MediaStore)', result.substring(3));
+                resolve(true);
+              } else {
+                errors.push('AndroidDownloads: ' + result);
+                resolve(false);
+              }
+            } catch (e) {
+              errors.push('AndroidDownloads: throw ' + (e && e.message ? e.message : '?'));
+              resolve(false);
+            }
+          };
+          reader.onerror = () => { errors.push('AndroidDownloads: FileReader error'); resolve(false); };
+          reader.readAsDataURL(blob);
+        } catch (e) {
+          errors.push('AndroidDownloads: setup ' + (e && e.message ? e.message : '?'));
+          resolve(false);
+        }
+      });
+    };
+    const finishFallback = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(safety);
+      if (silent) { console.warn('Auto-save fallito su tutti i percorsi:', errors); opts.onError && opts.onError(errors); return; }
+      if (isPDF) {
+        showPDFInlineViewer(blob, filename);
+      } else if (textForClipboard) {
+        showJSONBackupOverlay(textForClipboard, filename);
+      } else {
+        alert('❌ Impossibile salvare il file. Tentativi:\n' + errors.join('\n'));
+      }
+      opts.onError && opts.onError(errors);
+    };
+
+    // v1.2.72 — Scrittura in STREAMING (memory-safe) per backup di TESTO grandi.
+    // Invece di base64-codificare l'intero blob (→ OutOfMemoryError nativo),
+    // invia il testo a blocchi al bridge nativo, che li scrive su disco uno per
+    // volta tenendo aperto un OutputStream. Allocazione di memoria sempre piccola.
+    const TEXT_CHUNK = 512 * 1024;
+    // Spezza senza mai dividere una coppia surrogata (emoji/caratteri multibyte).
+    const safeChunkEnd = (text, start) => {
+      let end = Math.min(start + TEXT_CHUNK, text.length);
+      if (end < text.length) {
+        const c = text.charCodeAt(end - 1);
+        if (c >= 0xD800 && c <= 0xDBFF) end--; // sposta l'high surrogate al chunk dopo
+      }
+      return end;
+    };
+    const tryStreamingText = () => {
+      return new Promise((resolve) => {
+        if (textForClipboard == null ||
+            !window.AndroidDownloads ||
+            typeof window.AndroidDownloads.beginDownload !== 'function') {
+          resolve(false);
+          return;
+        }
+        try {
+          const text = textForClipboard;
+          const begin = window.AndroidDownloads.beginDownload(filename, mimeType || 'application/octet-stream');
+          if (typeof begin !== 'string' || begin.indexOf('OK:') !== 0) {
+            errors.push('stream begin: ' + begin);
+            resolve(false);
+            return;
+          }
+          const token = begin.substring(3);
+          let i = 0;
+          // Scrive un chunk per tick per non bloccare la UI thread (no ANR).
+          const pump = () => {
+            try {
+              if (i >= text.length) {
+                const endR = window.AndroidDownloads.endDownload(token);
+                if (typeof endR === 'string' && endR.indexOf('OK:') === 0) {
+                  finishSuccess('cartella Download (MediaStore, streaming)', endR.substring(3));
+                  resolve(true);
+                } else {
+                  errors.push('stream end: ' + endR);
+                  resolve(false);
+                }
+                return;
+              }
+              const end = safeChunkEnd(text, i);
+              const r = window.AndroidDownloads.appendText(token, text.substring(i, end));
+              i = end;
+              if (r !== 'OK') {
+                errors.push('stream append: ' + r);
+                try { window.AndroidDownloads.abortDownload(token); } catch (_) {}
+                resolve(false);
+                return;
+              }
+              setTimeout(pump, 0);
+            } catch (e) {
+              errors.push('stream pump: ' + (e && e.message ? e.message : '?'));
+              try { window.AndroidDownloads.abortDownload(token); } catch (_) {}
+              resolve(false);
+            }
+          };
+          pump();
+        } catch (e) {
+          errors.push('stream: ' + (e && e.message ? e.message : '?'));
+          resolve(false);
+        }
+      });
+    };
+
+    // Safety net: se tutto si blocca (nessuna callback), esegue fallback.
+    // Per i backup di testo (streaming) l'orario è generoso: dataset grandi
+    // possono richiedere alcuni secondi a scrivere chunk per chunk.
+    const safety = setTimeout(finishFallback, textForClipboard != null ? 60000 : 6000);
+
+    // v1.2.72 — Per il testo (JSON) usa lo streaming memory-safe per PRIMO.
+    // Per i binari (PDF) resta il bridge classico base64 (file piccoli).
+    const firstAttempt = (textForClipboard != null &&
+                          window.AndroidDownloads &&
+                          typeof window.AndroidDownloads.beginDownload === 'function')
+      ? tryStreamingText
+      : tryAndroidDownloadsBridge;
+    firstAttempt().then((ok) => {
+      if (ok || done) return; // successo: finishSuccess già chiamato
+      // Bridge non disponibile o ha fallito → continua con la cascata classica
+      startClassicCascade();
+    });
+
+    const startClassicCascade = () => {
+    // Costruisce la lista dei percorsi da provare
+    const tasks = [];
+    // 1) requestFileSystem PERSISTENT: funziona anche quando cordova.file.* sono null
+    if (window.requestFileSystem && window.LocalFileSystem) {
+      tasks.push({ kind: 'requestFS', label: 'memoria privata app (sandbox)' });
+    }
+    if (window.cordova && cordova.file) {
+      const f = cordova.file;
+      if (f.externalRootDirectory) tasks.push({ kind: 'url', url: f.externalRootDirectory + 'Download/', label: 'cartella Download del telefono', createSubdir: 'Download', rootUrl: f.externalRootDirectory });
+      if (f.externalDataDirectory) tasks.push({ kind: 'url', url: f.externalDataDirectory, label: 'Android/data/com.lemienote.app/files/' });
+      if (f.dataDirectory) tasks.push({ kind: 'url', url: f.dataDirectory, label: 'memoria interna app' });
+      if (f.cacheDirectory) tasks.push({ kind: 'url', url: f.cacheDirectory, label: 'cache app' });
+    }
+
+    if (tasks.length === 0) {
+      finishFallback();
+      return;
+    }
+
+    const writeInto = (dirEntry, label) => {
+      dirEntry.getFile(filename, { create: true, exclusive: false }, (fileEntry) => {
+        fileEntry.createWriter((writer) => {
+          writer.onerror = (e) => { errors.push(label + ': write ' + ((e && e.code) || '?')); runNext(); };
+          // v1.2.72 — Se abbiamo il testo (JSON), scriviamo a slice tramite
+          // cordova-plugin-file passando STRINGHE (isBinary=false → niente base64,
+          // nessuna allocazione enorme). Per i binari (PDF) scriviamo il blob.
+          if (textForClipboard != null) {
+            const text = textForClipboard;
+            let pos = 0;
+            let truncated = false;
+            const step = () => {
+              if (!truncated) { truncated = true; writer.truncate(0); return; }
+              if (pos >= text.length) {
+                finishSuccess(label, fileEntry.toURL ? fileEntry.toURL() : '');
+                return;
+              }
+              const end = safeChunkEnd(text, pos);
+              const slice = text.substring(pos, end);
+              pos = end;
+              try { writer.seek(writer.length); } catch (_) {}
+              writer.write(slice);
+            };
+            writer.onwriteend = step;
+            step(); // primo passo: truncate(0), poi scrive i chunk
+          } else {
+            writer.onwriteend = () => finishSuccess(label, fileEntry.toURL ? fileEntry.toURL() : '');
+            writer.write(blob);
+          }
+        }, (e) => { errors.push(label + ': createWriter ' + ((e && e.code) || '?')); runNext(); });
+      }, (e) => { errors.push(label + ': getFile ' + ((e && e.code) || '?')); runNext(); });
+    };
+
+    // Pre-fallback v1.2.54: tenta un "download" via anchor + URL.createObjectURL.
+    // Su alcune WebView recenti triggera il DownloadManager Android e salva in Download.
+    // Se non succede nulla in 1.5 s, attiviamo comunque l'overlay fallback.
+    let anchorTried = false;
+    const tryAnchorDownload = () => {
+      if (anchorTried) { finishFallback(); return; }
+      anchorTried = true;
+      try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} URL.revokeObjectURL(url); }, 10000);
+      } catch (e) {
+        errors.push('anchor download: ' + (e && e.message ? e.message : '?'));
+      }
+      // Nessun feedback affidabile di successo → dopo 1.5 s passa all'overlay.
+      setTimeout(finishFallback, 1500);
+    };
+
+    let idx = 0;
+    const runNext = () => {
+      if (done) return;
+      if (idx >= tasks.length) { tryAnchorDownload(); return; }
+      const t = tasks[idx++];
+      if (t.kind === 'requestFS') {
+        try {
+          window.requestFileSystem(window.LocalFileSystem.PERSISTENT, 0, (fs) => {
+            writeInto(fs.root, t.label);
+          }, (e) => { errors.push(t.label + ': requestFS ' + ((e && e.code) || '?')); runNext(); });
+        } catch (e) {
+          errors.push(t.label + ': throw ' + (e && e.message ? e.message : '?'));
+          runNext();
+        }
+      } else if (t.kind === 'url') {
+        if (t.createSubdir && t.rootUrl) {
+          window.resolveLocalFileSystemURL(t.rootUrl, (root) => {
+            root.getDirectory(t.createSubdir, { create: true }, (sub) => {
+              writeInto(sub, t.label);
+            }, (e) => { errors.push(t.label + ': getDir ' + ((e && e.code) || '?')); runNext(); });
+          }, (e) => { errors.push(t.label + ': resolveRoot ' + ((e && e.code) || '?')); runNext(); });
+        } else {
+          window.resolveLocalFileSystemURL(t.url, (dir) => writeInto(dir, t.label),
+            (e) => { errors.push(t.label + ': resolve ' + ((e && e.code) || '?')); runNext(); });
+        }
+      }
+    };
+    runNext();
+    }; // end startClassicCascade
+  };
+  // Helper condiviso: costruisce un pulsante azione con stile uniforme (target touch 44 px).
+  const _mkActionBtn = (txt, bg) => {
+    const b = document.createElement('button');
+    b.textContent = txt;
+    b.style.cssText = 'background:' + bg + ';color:#fff;border:0;padding:12px 14px;border-radius:6px;font-size:14px;flex-shrink:0;min-height:44px;font-weight:600;';
+    return b;
+  };
+  // Visualizzatore PDF inline v1.2.54: layout con pulsanti SEMPRE visibili (Chiudi + Condividi).
+  // Il nome file non può più "spingere fuori" i pulsanti grazie a flex-shrink:0 e ordine dei blocchi.
+  const showPDFInlineViewer = (blob, filename) => {
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUri = reader.result;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:100000;display:flex;flex-direction:column;';
+        // Riga 1: pulsanti azione (sempre visibili anche con nomi file lunghi)
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;background:#222;padding:10px;';
+        const shareBtn = _mkActionBtn('📤 Condividi', '#2196F3');
+        const closeBtn = _mkActionBtn('✕ Chiudi', '#f44336');
+        actions.appendChild(shareBtn);
+        actions.appendChild(closeBtn);
+        // Riga 2: nome file (troncato se lungo)
+        const info = document.createElement('div');
+        info.style.cssText = 'background:#333;color:#fff;padding:6px 12px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        info.textContent = '📄 ' + filename;
+        // Riga 3: iframe PDF
+        const iframe = document.createElement('iframe');
+        iframe.src = dataUri;
+        iframe.style.cssText = 'flex:1;border:0;width:100%;background:#fff;';
+        // Handlers
+        closeBtn.onclick = () => { try { document.body.removeChild(overlay); } catch (_) {} };
+        shareBtn.onclick = async () => {
+          try {
+            if (navigator.canShare && navigator.share) {
+              const file = new File([blob], filename, { type: 'application/pdf' });
+              if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: filename });
+                return;
+              }
+            }
+            // Fallback: prova share solo testo con link al dataUri (Android ignorerà ma almeno apre picker)
+            if (navigator.share) {
+              await navigator.share({ title: filename, text: 'Backup PDF Le Mie Note' });
+              return;
+            }
+            alert('⚠️ Condivisione non disponibile. Usa i 3 puntini del visualizzatore PDF sotto.');
+          } catch (e) {
+            if (e && e.name === 'AbortError') return;
+            alert('❌ Condivisione fallita: ' + (e && e.message ? e.message : e));
+          }
+        };
+        overlay.appendChild(actions);
+        overlay.appendChild(info);
+        overlay.appendChild(iframe);
+        document.body.appendChild(overlay);
+      };
+      reader.onerror = () => alert('❌ Impossibile visualizzare il PDF. Riprova.');
+      reader.readAsDataURL(blob);
+    } catch (e) {
+      alert('❌ Errore visualizzatore PDF: ' + (e && e.message ? e.message : e));
+    }
+  };
+  // Overlay JSON backup v1.2.54: pulsanti in riga separata SOPRA il nome file.
+  // Nome file lungo non può più spingere fuori schermo i pulsanti (flex-shrink:0 + righe separate).
+  const showJSONBackupOverlay = (jsonString, filename) => {
+    try {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:100000;display:flex;flex-direction:column;padding:12px;box-sizing:border-box;';
+      // Riga 1: pulsanti azione (sempre visibili)
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;';
+      const copyBtn = _mkActionBtn('📋 Copia', '#4CAF50');
+      const shareBtn = _mkActionBtn('📤 Condividi', '#2196F3');
+      const saveNoteBtn = _mkActionBtn('💾 Nota', '#FF9800');
+      const closeBtn = _mkActionBtn('✕', '#f44336');
+      actions.appendChild(copyBtn);
+      actions.appendChild(shareBtn);
+      actions.appendChild(saveNoteBtn);
+      actions.appendChild(closeBtn);
+      // Riga 2: nome file + istruzione (truncate)
+      const info = document.createElement('div');
+      info.style.cssText = 'color:#fff;font-size:13px;margin-bottom:8px;';
+      const fileRow = document.createElement('div');
+      fileRow.textContent = '💾 ' + filename;
+      fileRow.style.cssText = 'font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:4px;';
+      const hintRow = document.createElement('div');
+      hintRow.textContent = 'Copia, Condividi, oppure "💾 Nota" salva il backup come nota interna apribile dopo.';
+      hintRow.style.cssText = 'color:#ccc;font-size:11px;';
+      info.appendChild(fileRow);
+      info.appendChild(hintRow);
+      // Riga 3: textarea
+      const ta = document.createElement('textarea');
+      ta.value = jsonString;
+      ta.style.cssText = 'flex:1;width:100%;font-family:monospace;font-size:12px;padding:10px;border-radius:6px;border:0;resize:none;box-sizing:border-box;';
+      // Handlers
+      closeBtn.onclick = () => { try { document.body.removeChild(overlay); } catch (_) {} };
+      copyBtn.onclick = () => {
+        ta.focus(); ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (_) {}
+        const showDone = () => {
+          copyBtn.textContent = '✅ Copiato!';
+          setTimeout(() => { copyBtn.textContent = '📋 Copia'; }, 2000);
+        };
+        if (ok) { showDone(); return; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(jsonString).then(showDone).catch(() => {
+            alert('⚠️ Copia automatica non disponibile.\nTieni premuto sul testo → Seleziona tutto → Copia.');
+          });
+        } else {
+          alert('⚠️ Copia automatica non disponibile.\nTieni premuto sul testo → Seleziona tutto → Copia.');
+        }
+      };
+      saveNoteBtn.onclick = () => {
+        // v1.2.56: fallback estremo - salva il JSON come nota interna, così l'utente può
+        // aprirla dalla lista note, dove il textarea React ha text selection funzionante.
+        try {
+          const now = new Date();
+          const dateStr = now.toLocaleDateString('it-IT');
+          const timeStr = now.toLocaleTimeString('it-IT');
+          const firstCat = (Array.isArray(categories) && categories.length > 0) ? (categories[0].name || categories[0]) : 'Finanze';
+          const backupNote = {
+            id: Date.now(),
+            date: dateStr,
+            category: (typeof firstCat === 'string' ? firstCat : 'Finanze'),
+            theme: 'BACKUP',
+            title: '💾 BACKUP ' + dateStr + ' ' + timeStr,
+            content: jsonString,
+            images: [],
+            attachments: [],
+            reminderDateTime: '',
+            reminderEnabled: false,
+            reminderRingtoneUri: '',
+            completed: false
+          };
+          setNotes(prev => [...prev, backupNote]);
+          saveNoteBtn.textContent = '✅ Salvato!';
+          setTimeout(() => { saveNoteBtn.textContent = '💾 Nota'; }, 2000);
+          alert('✅ Backup salvato come nota interna!\n\nTitolo: ' + backupNote.title + '\n\nApri la nota dalla lista principale, poi long-press sul contenuto → Seleziona tutto → Copia per trasferirlo altrove.');
+        } catch (e) {
+          alert('❌ Errore salvataggio nota: ' + (e && e.message ? e.message : e));
+        }
+      };
+      shareBtn.onclick = async () => {
+        try {
+          // v1.2.55: forzare MIME text/plain (whitelist Web Share Android include text/*).
+          // Il file JSON viene inviato come .txt allegato - Gmail/WhatsApp lo accettano intero.
+          // Il file si può reimportare: importData accetta sia .json sia .txt.
+          if (navigator.canShare && navigator.share) {
+            const txtName = filename.replace(/\.json$/i, '.txt');
+            const file = new File([jsonString], txtName, { type: 'text/plain' });
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: txtName });
+              return;
+            }
+          }
+          // Se share file non è supportato, NON ripiegare su share testo (che Gmail tronca).
+          // Invita l'utente a usare il pulsante Copia.
+          alert('⚠️ Condivisione file non supportata dal dispositivo.\n\nUsa il pulsante "📋 Copia" (verde) e poi incolla in Gmail, WhatsApp o Note.\n\nLa clipboard non ha limiti di dimensione.');
+        } catch (e) {
+          if (e && e.name === 'AbortError') return;
+          alert('❌ Condivisione fallita: ' + (e && e.message ? e.message : e) + '\n\nUsa "📋 Copia" come alternativa.');
+        }
+      };
+      overlay.appendChild(actions);
+      overlay.appendChild(info);
+      overlay.appendChild(ta);
+      document.body.appendChild(overlay);
+    } catch (e) {
+      alert('❌ Errore overlay backup: ' + (e && e.message ? e.message : e));
+    }
+  };
   const exportData = () => {
     try {
       const data = {
-        notes,
-        categories,
-        theme,
-        style,
-        appFont,
-        textSize,
+        notes, categories, theme, style, appFont, textSize,
         exportDate: new Date().toLocaleString('it-IT'),
         version: '5.4'
       };
       const jsonString = JSON.stringify(data, null, 2);
       const filename = `lemienote_backup_${Date.now()}.json`;
+      const blob = new Blob([jsonString], { type: 'application/json' });
       setShowMenu(false);
-      const isCordova = window.cordova && window.resolveLocalFileSystemURL && cordova.file;
-      if (isCordova) {
-        // TENTATIVO 1: Cartella Download pubblica
-        const downloadPath = cordova.file.externalRootDirectory ? cordova.file.externalRootDirectory + 'Download' : null;
-        const saveToAppDir = () => {
-          // TENTATIVO 2: Directory dati app
-          const appDir = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
-          writeFileToDir(appDir, filename, jsonString, function (fileEntry) {
-            alert('✅ Backup salvato!\n\n' + '📄 ' + filename + '\n\n' + '⚠️ Il file è nei dati dell\'app.\n' + 'Per accedervi facilmente, tocca "Condividi" la prossima volta.');
-          }, function () {
-            copyToClipboardBackup(jsonString, filename);
-          });
-        };
-        if (downloadPath) {
-          // Prova a creare la cartella Download se non esiste
-          window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function (rootEntry) {
-            rootEntry.getDirectory('Download', {
-              create: true
-            }, function (downloadDir) {
-              downloadDir.getFile(filename, {
-                create: true,
-                exclusive: false
-              }, function (fileEntry) {
-                fileEntry.createWriter(function (fileWriter) {
-                  fileWriter.onwriteend = function () {
-                    alert('✅ Backup salvato nella cartella Download!\n\n' + '📄 ' + filename + '\n\n' + '💡 Per trovarlo:\n' + 'Apri Gestore File → Download');
-                  };
-                  fileWriter.onerror = function () {
-                    saveToAppDir();
-                  };
-                  var blob = new Blob([jsonString], {
-                    type: 'application/json'
-                  });
-                  fileWriter.write(blob);
-                }, function () {
-                  saveToAppDir();
-                });
-              }, function () {
-                saveToAppDir();
-              });
-            }, function () {
-              saveToAppDir();
-            });
-          }, function () {
-            saveToAppDir();
-          });
-        } else {
-          saveToAppDir();
-        }
-      } else {
-        // Browser: Blob URL download
-        const blob = new Blob([jsonString], {
-          type: 'application/json'
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 200);
-        setTimeout(() => {
-          alert('✅ Backup scaricato!\n\nControlla la cartella Download.');
-        }, 300);
-      }
+      saveFileWithFallbacks(blob, filename, 'application/json', {
+        successPrefix: 'Backup salvato',
+        textForClipboard: jsonString
+      });
     } catch (error) {
       console.error('Errore export:', error);
       alert('❌ Errore: ' + error.message);
@@ -2110,41 +2902,19 @@ const App = () => {
       const jsonString = JSON.stringify(data, null, 2);
       const dateStr = new Date().toISOString().slice(0, 10);
       const filename = `lemienote_autobackup_${dateStr}.json`;
-      const onSuccess = () => {
-        const today = new Date().toLocaleDateString('it-IT');
-        setLastAutoBackup(today);
-        setAutoBackupToast(true);
-        setTimeout(() => setAutoBackupToast(false), 3000);
-        console.log('✅ Backup automatico completato:', filename);
-      };
-      const onError = (err) => { console.error('❌ Errore backup automatico:', err); };
-      const isCordova = window.cordova && window.resolveLocalFileSystemURL && cordova.file;
-      if (isCordova) {
-        const tryAppDir = () => {
-          const appDir = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
-          writeFileToDir(appDir, filename, jsonString, onSuccess, onError);
-        };
-        if (cordova.file.externalRootDirectory) {
-          window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, (rootEntry) => {
-            rootEntry.getDirectory('Download', { create: true }, (downloadDir) => {
-              downloadDir.getFile(filename, { create: true, exclusive: false }, (fileEntry) => {
-                fileEntry.createWriter((writer) => {
-                  writer.onwriteend = onSuccess;
-                  writer.onerror = tryAppDir;
-                  writer.write(new Blob([jsonString], { type: 'application/json' }));
-                }, tryAppDir);
-              }, tryAppDir);
-            }, tryAppDir);
-          }, tryAppDir);
-        } else { tryAppDir(); }
-      } else {
-        const blob = new Blob([jsonString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none'; a.href = url; a.download = filename;
-        document.body.appendChild(a); a.click();
-        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); onSuccess(); }, 300);
-      }
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      saveFileWithFallbacks(blob, filename, 'application/json', {
+        silent: true,
+        textForClipboard: jsonString,
+        onSuccess: () => {
+          const today = new Date().toLocaleDateString('it-IT');
+          setLastAutoBackup(today);
+          setAutoBackupToast(true);
+          setTimeout(() => setAutoBackupToast(false), 3000);
+          console.log('✅ Backup automatico completato:', filename);
+        },
+        onError: (err) => console.error('❌ Errore backup automatico:', err)
+      });
     } catch (err) { console.error('❌ Errore backup automatico:', err); }
   };
   runAutoBackupRef.current = runAutoBackup;
@@ -2161,71 +2931,12 @@ const App = () => {
       const jsonString = JSON.stringify(data, null, 2);
       const safeName = categoryName.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       const filename = `lemienote_${safeName}_${Date.now()}.json`;
+      const blob = new Blob([jsonString], { type: 'application/json' });
       setShowExportCategory(false);
-      const isCordova = window.cordova && window.resolveLocalFileSystemURL && cordova.file;
-      if (isCordova) {
-        const saveToAppDir = () => {
-          const appDir = cordova.file.externalDataDirectory || cordova.file.dataDirectory;
-          writeFileToDir(appDir, filename, jsonString, function () {
-            alert('✅ Categoria "' + categoryName + '" esportata!\n\n📄 ' + filename);
-          }, function () {
-            copyToClipboardBackup(jsonString, filename);
-          });
-        };
-        if (cordova.file.externalRootDirectory) {
-          window.resolveLocalFileSystemURL(cordova.file.externalRootDirectory, function (rootEntry) {
-            rootEntry.getDirectory('Download', {
-              create: true
-            }, function (downloadDir) {
-              downloadDir.getFile(filename, {
-                create: true,
-                exclusive: false
-              }, function (fileEntry) {
-                fileEntry.createWriter(function (fileWriter) {
-                  fileWriter.onwriteend = function () {
-                    alert('✅ Categoria "' + categoryName + '" esportata!\n\n📄 ' + filename + '\n\n💡 Apri Gestore File → Download');
-                  };
-                  fileWriter.onerror = function () {
-                    saveToAppDir();
-                  };
-                  var blob = new Blob([jsonString], {
-                    type: 'application/json'
-                  });
-                  fileWriter.write(blob);
-                }, function () {
-                  saveToAppDir();
-                });
-              }, function () {
-                saveToAppDir();
-              });
-            }, function () {
-              saveToAppDir();
-            });
-          }, function () {
-            saveToAppDir();
-          });
-        } else {
-          saveToAppDir();
-        }
-      } else {
-        const blob = new Blob([jsonString], {
-          type: 'application/json'
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 200);
-        setTimeout(() => {
-          alert('✅ Categoria "' + categoryName + '" esportata!\n\nControlla la cartella Download.');
-        }, 300);
-      }
+      saveFileWithFallbacks(blob, filename, 'application/json', {
+        successPrefix: 'Categoria "' + categoryName + '" esportata',
+        textForClipboard: jsonString
+      });
     } catch (error) {
       alert('❌ Errore: ' + error.message);
     }
@@ -2260,8 +2971,14 @@ const App = () => {
     }
     document.body.removeChild(textarea);
   };
-  const exportPDF = (notesToExport, titoloPDF) => {
+  // Costruisce il blob PDF (usato sia da salva-su-dispositivo sia da condividi).
+  // Ritorna { blob, filename } oppure null in caso di errore (mostrato all'utente).
+  const buildPDFBlob = (notesToExport, titoloPDF, customFilename) => {
     try {
+      if (!window.jspdf) {
+        alert('❌ Libreria PDF non caricata. Riavvia l\'app.');
+        return null;
+      }
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const PW = 190; // larghezza utile (210 - 2*10)
@@ -2277,7 +2994,7 @@ const App = () => {
           doc.setPage(i);
           doc.setFontSize(8);
           doc.setTextColor(170);
-          doc.text('Le Mie Note — versione 1.2.40', ML, 293);
+          doc.text('Le Mie Note — versione 1.2.79', ML, 293);
           doc.text('Pag. ' + i + ' / ' + pgs, 200, 293, { align: 'right' });
         }
       };
@@ -2355,50 +3072,34 @@ const App = () => {
 
       addFooter();
 
-      // ── Salvataggio ───────────────────────────────────────────────────────
-      const filename = 'lemienote_' + Date.now() + '.pdf';
+      const filename = customFilename || ('lemienote_' + Date.now() + '.pdf');
       const pdfBlob = doc.output('blob');
-
-      if (typeof cordova !== 'undefined' && cordova.file) {
-        // Tentativo Android: cartella Download
-        const trySave = (dirUrl) => {
-          window.resolveLocalFileSystemURL(dirUrl, (dir) => {
-            dir.getFile(filename, { create: true, exclusive: false }, (fileEntry) => {
-              fileEntry.createWriter((writer) => {
-                writer.onwriteend = () => alert('✅ PDF salvato nella cartella Download:\n' + filename);
-                writer.onerror = () => alert('❌ Errore nella scrittura del file.');
-                writer.write(pdfBlob);
-              });
-            }, () => alert('❌ Impossibile creare il file.'));
-          }, () => {
-            // fallback dataDirectory
-            if (dirUrl !== cordova.file.externalDataDirectory) {
-              trySave(cordova.file.externalDataDirectory);
-            } else {
-              alert('❌ Impossibile accedere alla memoria esterna.');
-            }
-          });
-        };
-        trySave(cordova.file.externalRootDirectory + 'Download');
-      } else {
-        // Browser / PWA
-        const url = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
+      return { blob: pdfBlob, filename };
     } catch (err) {
       alert('❌ Errore generazione PDF: ' + err.message);
+      return null;
     }
+  };
+  const exportPDF = (notesToExport, titoloPDF) => {
+    if (!notesToExport || notesToExport.length === 0) {
+      alert('⚠️ Nessuna nota selezionata.');
+      return;
+    }
+    const defaultName = (titoloPDF || 'lemienote')
+      .replace(/[\\/:*?"<>|]/g, '')
+      .replace(/\s+/g, '_')
+      .slice(0, 60) || 'lemienote';
+    const userName = prompt('Nome del file PDF:', defaultName);
+    if (userName === null) return;
+    const cleanName = userName.trim().replace(/\.pdf$/i, '').replace(/[\\/:*?"<>|]/g, '_') || defaultName;
+    const out = buildPDFBlob(notesToExport, titoloPDF, cleanName + '.pdf');
+    if (!out) return;
+    saveFileWithFallbacks(out.blob, out.filename, 'application/pdf', { successPrefix: 'PDF salvato' });
   };
   const importData = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/json';
+    input.accept = 'application/json,text/plain,.json,.txt';
     input.onchange = e => {
       const file = e.target.files[0];
       if (file) {
@@ -2426,7 +3127,7 @@ const App = () => {
   const startImportCategory = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/json';
+    input.accept = 'application/json,text/plain,.json,.txt';
     input.onchange = e => {
       const file = e.target.files[0];
       if (!file) return;
@@ -2554,6 +3255,25 @@ const App = () => {
   }, [highlightIndex]);
   const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const normalizeText = text => (text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const registerSearchHistory = (query, resultsForQuery) => {
+    const trimmed = (query || '').trim();
+    if (trimmed.length < 2) return;
+    const key = trimmed.toLowerCase();
+    const distinctCats = Array.from(
+      new Set(resultsForQuery.map(n => n.category || 'Senza categoria'))
+    ).sort((a, b) => a.localeCompare(b, 'it'));
+    setSearchHistory(prev => {
+      const withoutDup = prev.filter(h => h.query.trim().toLowerCase() !== key);
+      const entry = { query: trimmed, categories: distinctCats, timestamp: Date.now() };
+      return [entry, ...withoutDup].slice(0, 50);
+    });
+  };
+  const removeSearchHistoryItem = query => {
+    setSearchHistory(prev => prev.filter(h => h.query !== query));
+  };
+  const clearSearchHistory = () => {
+    if (confirm('Svuotare tutta la cronologia delle ricerche?')) setSearchHistory([]);
+  };
   const getContentSnippet = (content, query, mode = 'all-words') => {
     if (!content) return '';
     const trimmedQuery = query.trim();
@@ -2646,6 +3366,86 @@ const App = () => {
     }
   };
 
+  // Divide il contenuto in base agli intervalli evidenziati (formData.highlights)
+  // e restituisce testo semplice alternato a span colorati cliccabili.
+  const handleHighlightSpanClick = h => {
+    setPendingSelection({ start: h.start, end: h.end, fromClick: true });
+  };
+  const renderContentWithHighlights = (content, highlights, themeName) => {
+    if (!content) return content || '';
+    const hs = (highlights || []).filter(h => h && h.start < h.end && h.start >= 0 && h.end <= content.length).sort((a, b) => a.start - b.start);
+    const clipped = [];
+    let cursor = 0;
+    for (const h of hs) {
+      const start = Math.max(h.start, cursor);
+      if (start >= h.end) continue;
+      clipped.push({ ...h, start });
+      cursor = h.end;
+    }
+    const parts = [];
+    let pos = 0;
+    clipped.forEach((h, i) => {
+      if (h.start > pos) parts.push(content.slice(pos, h.start));
+      const shade = highlightColors[h.color] ? highlightColors[h.color][themeName === 'dark' ? 'dark' : 'light'] : 'transparent';
+      parts.push(/*#__PURE__*/React.createElement("span", {
+        key: 'h' + i,
+        className: "text-highlight",
+        style: { backgroundColor: shade },
+        onClick: () => handleHighlightSpanClick(h)
+      }, content.slice(h.start, h.end)));
+      pos = h.end;
+    });
+    if (pos < content.length) parts.push(content.slice(pos));
+    return parts;
+  };
+
+  // Converte la selezione DOM corrente (fatta dentro containerEl, testo + span) in
+  // offset di caratteri {start, end} relativi al testo semplice contenuto.
+  const getSelectionOffsetsIn = containerEl => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
+    const range = sel.getRangeAt(0);
+    if (!containerEl.contains(range.startContainer) || !containerEl.contains(range.endContainer)) return null;
+    const preRange = document.createRange();
+    preRange.selectNodeContents(containerEl);
+    preRange.setEnd(range.startContainer, range.startOffset);
+    const start = preRange.toString().length;
+    const end = start + range.toString().length;
+    return { start, end };
+  };
+  const handlePreviewSelection = () => {
+    if (!highlightViewRef.current) return;
+    const offsets = getSelectionOffsetsIn(highlightViewRef.current);
+    if (offsets && offsets.end > offsets.start) setPendingSelection({ start: offsets.start, end: offsets.end, fromClick: false });
+  };
+
+  // Applica un'evidenziazione: la nuova selezione vince su eventuali evidenziazioni
+  // preesistenti che si sovrappongono (le ritaglia invece di lasciarle sovrapposte).
+  const applyHighlight = (start, end, color) => {
+    setFormData(prev => {
+      const existing = prev.highlights || [];
+      const trimmed = [];
+      existing.forEach(h => {
+        if (h.end <= start || h.start >= end) {
+          trimmed.push(h);
+          return;
+        }
+        if (h.start < start) trimmed.push({ ...h, end: start });
+        if (h.end > end) trimmed.push({ ...h, start: end });
+      });
+      const next = [...trimmed, { start, end, color }].sort((a, b) => a.start - b.start);
+      return { ...prev, highlights: next };
+    });
+    setPendingSelection(null);
+  };
+  const removeHighlightAt = (start, end) => {
+    setFormData(prev => ({
+      ...prev,
+      highlights: (prev.highlights || []).filter(h => !(h.start === start && h.end === end))
+    }));
+    setPendingSelection(null);
+  };
+
   // Funzioni calendario (settimana inizia da Lunedì)
   const getDaysInMonth = date => {
     const year = date.getFullYear();
@@ -2724,8 +3524,59 @@ const App = () => {
   const monthNames = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
   const filteredNotes = useMemo(
     () => getFilteredNotes(),
-    [notes, searchQuery, selectedFilter, searchMode, currentView, sortMode, categorySortBy]
+    [notes, searchQuery, selectedFilter, searchMode, searchScope, currentView, sortMode, categorySortBy]
   );
+  // Selezione PDF: default = tutte le note filtrate. Si resetta quando cambiano query/vista/risultati.
+  useEffect(() => {
+    if (currentView === 'search' && searchQuery.trim()) {
+      setSelectedForPDF(new Set(filteredNotes.map(n => n.id)));
+    } else {
+      setSelectedForPDF(new Set());
+    }
+  }, [searchQuery, currentView, filteredNotes.length]);
+  const toggleNoteForPDF = (id) => setSelectedForPDF(s => {
+    const n = new Set(s);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const selectAllForPDF = () => setSelectedForPDF(new Set(filteredNotes.map(n => n.id)));
+  const clearSelectionForPDF = () => setSelectedForPDF(new Set());
+  const notesSelectedForPDF = filteredNotes.filter(n => selectedForPDF.has(n.id));
+  // Registra la ricerca in cronologia dopo una pausa di digitazione
+  useEffect(() => {
+    if (currentView === 'search' && searchQuery.trim().length >= 2) {
+      searchHistoryTimer.current = setTimeout(() => {
+        registerSearchHistory(searchQuery, filteredNotes);
+        searchHistoryTimer.current = null;
+      }, 1000);
+    }
+    return () => {
+      if (searchHistoryTimer.current) { clearTimeout(searchHistoryTimer.current); searchHistoryTimer.current = null; }
+    };
+  }, [searchQuery, filteredNotes, currentView]);
+  // Flush immediato quando si esce dalla view di ricerca
+  useEffect(() => {
+    if (prevViewRef.current === 'search' && currentView !== 'search' && searchQuery.trim().length >= 2) {
+      registerSearchHistory(searchQuery, filteredNotes);
+    }
+    prevViewRef.current = currentView;
+  }, [currentView]);
+  const historyGroups = (() => {
+    const map = new Map();
+    searchHistory.forEach(item => {
+      const label = item.categories.length === 0 ? 'Nessun risultato'
+        : item.categories.length === 1 ? item.categories[0]
+        : 'Varie categorie';
+      if (!map.has(label)) map.set(label, []);
+      map.get(label).push(item);
+    });
+    const labels = Array.from(map.keys());
+    const singleCatLabels = labels.filter(l => l !== 'Varie categorie' && l !== 'Nessun risultato').sort((a, b) => a.localeCompare(b, 'it'));
+    const finalOrder = [...singleCatLabels,
+      ...(labels.includes('Varie categorie') ? ['Varie categorie'] : []),
+      ...(labels.includes('Nessun risultato') ? ['Nessun risultato'] : [])];
+    return finalOrder.map(label => ({ label, items: map.get(label) }));
+  })();
   const filterOptions = ['Tutto', 'Da Completare', 'Completate', 'Cerca...', '--- Categorie ---', ...[...categories].sort((a, b) => a.localeCompare(b, 'it'))];
   const styleNames = {
     modern: 'Moderno 🎨',
@@ -2805,7 +3656,7 @@ const App = () => {
       marginLeft: '8px',
       verticalAlign: 'middle'
     }
-  }, "\uD83D\uDCC1 per categoria")), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC1 per categoria \u00B7 " + (categorySortBy === 'title' ? 'titolo' : categorySortBy === 'theme' ? 'tema' : 'data'))), /*#__PURE__*/React.createElement("div", {
     className: "toolbar-actions"
   }, /*#__PURE__*/React.createElement("div", {
     className: "dropdown"
@@ -2830,7 +3681,21 @@ const App = () => {
       setCategorySortBy('date');
       setShowMenu(false);
     }
-  }, "\uD83D\uDCC1 Ordina per categoria"), /*#__PURE__*/React.createElement("div", {
+  }, "\uD83D\uDCC1 Per categoria \u00B7 per data"), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: () => {
+      setSortMode('category');
+      setCategorySortBy('title');
+      setShowMenu(false);
+    }
+  }, "\uD83D\uDCC1 Per categoria \u00B7 per titolo"), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item",
+    onClick: () => {
+      setSortMode('category');
+      setCategorySortBy('theme');
+      setShowMenu(false);
+    }
+  }, "\uD83D\uDCC1 Per categoria \u00B7 per tema"), /*#__PURE__*/React.createElement("div", {
     className: "dropdown-item",
     onClick: sortAlphabetically
   }, "\uD83D\uDD24 Ordina alfabeticamente"), /*#__PURE__*/React.createElement("div", {
@@ -2913,6 +3778,8 @@ const App = () => {
     onChange: e => {
       const val = e.target.value;
       if (val === 'Cerca...') {
+        setSearchQuery('');
+        setSearchInputValue('');
         setCurrentView('search');
       } else {
         setSelectedFilter(val);
@@ -3012,12 +3879,15 @@ const App = () => {
       }
     }, item.note.attachments.map((att, i) => /*#__PURE__*/React.createElement("span", {
       key: i,
+      onClick: e => { e.stopPropagation(); openAttachment(att); },
       style: {
         fontSize: '11px',
-        padding: '2px 8px',
-        background: '#f0f0f0',
+        padding: '4px 10px',
+        background: '#e8f5e9',
+        border: '1px solid #4CAF50',
         borderRadius: '12px',
-        color: '#555'
+        color: '#2e7d32',
+        cursor: 'pointer'
       }
     }, getFileIcon(att.type), " ", att.name.length > 20 ? att.name.slice(0, 18) + '…' : att.name))), item.note.reminderEnabled && /*#__PURE__*/React.createElement("div", {
       className: "reminder-badge"
@@ -3076,12 +3946,15 @@ const App = () => {
     }
   }, note.attachments.map((att, i) => /*#__PURE__*/React.createElement("span", {
     key: i,
+    onClick: e => { e.stopPropagation(); openAttachment(att); },
     style: {
       fontSize: '11px',
-      padding: '2px 8px',
-      background: '#f0f0f0',
+      padding: '4px 10px',
+      background: '#e8f5e9',
+      border: '1px solid #4CAF50',
       borderRadius: '12px',
-      color: '#555'
+      color: '#2e7d32',
+      cursor: 'pointer'
     }
   }, getFileIcon(att.type), " ", att.name.length > 20 ? att.name.slice(0, 18) + '…' : att.name))), note.reminderEnabled && /*#__PURE__*/React.createElement("div", {
     className: "reminder-badge"
@@ -3092,18 +3965,55 @@ const App = () => {
     type: "checkbox",
     checked: note.completed,
     onChange: () => toggleCompleted(note.id)
-  }), /*#__PURE__*/React.createElement("span", null, "Completata")))))) : currentView === 'search' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("input", {
+  }), /*#__PURE__*/React.createElement("span", null, "Completata")))))) : currentView === 'search' ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "search-input-wrapper"
+  }, /*#__PURE__*/React.createElement("input", {
     type: "text",
     className: `search-input ${style}`,
     placeholder: "Cerca in tutte le note...",
     ref: searchInputRef,
+    value: searchInputValue,
     onChange: e => {
       const val = e.target.value;
+      setSearchInputValue(val);
+      setShowSearchHistory(!val.trim());
       if (searchDebounceTimer.current) clearTimeout(searchDebounceTimer.current);
       searchDebounceTimer.current = setTimeout(() => { setSearchQuery(val); }, 300);
     },
+    onFocus: () => { if (!searchInputValue.trim()) setShowSearchHistory(true); },
+    onBlur: () => {
+      if (searchHistoryTimer.current) { clearTimeout(searchHistoryTimer.current); searchHistoryTimer.current = null; }
+      if (searchQuery.trim().length >= 2) registerSearchHistory(searchQuery, filteredNotes);
+    },
     autoFocus: true
-  }), searchQuery.trim().split(/\s+/).filter(w => w).length > 1 && /*#__PURE__*/React.createElement("div", {
+  }), showSearchHistory && !searchInputValue.trim() && searchHistory.length > 0 && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-overlay show",
+    onClick: () => setShowSearchHistory(false)
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-content search-history-dropdown show"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item search-history-clear",
+    onClick: clearSearchHistory
+  }, "🗑 Svuota cronologia"), historyGroups.map(group => /*#__PURE__*/React.createElement(React.Fragment, {
+    key: group.label
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "category-group-header",
+    style: { color: themeColors[style] || '#2196F3' }
+  }, "📁 " + group.label), group.items.map(item => /*#__PURE__*/React.createElement("div", {
+    className: "dropdown-item search-history-item",
+    key: item.query
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "search-history-item-text",
+    onClick: () => {
+      setSearchInputValue(item.query);
+      if (searchDebounceTimer.current) clearTimeout(searchDebounceTimer.current);
+      setSearchQuery(item.query);
+      setShowSearchHistory(false);
+    }
+  }, item.query), /*#__PURE__*/React.createElement("button", {
+    className: "search-history-item-remove",
+    onClick: e => { e.stopPropagation(); removeSearchHistoryItem(item.query); }
+  }, "×")))))))), searchQuery.trim().split(/\s+/).filter(w => w).length > 1 && /*#__PURE__*/React.createElement("div", {
     className: "search-mode-toggle"
   }, /*#__PURE__*/React.createElement("button", {
     className: `mode-btn ${searchMode === 'all-words' ? `active ${style}` : ''}`,
@@ -3111,12 +4021,31 @@ const App = () => {
   }, "Tutte le parole"), /*#__PURE__*/React.createElement("button", {
     className: `mode-btn ${searchMode === 'phrase' ? `active ${style}` : ''}`,
     onClick: () => setSearchMode('phrase')
-  }, "Frase esatta")), searchQuery.trim() && filteredNotes.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "btn-export-pdf-bar"
+  }, "Frase esatta")), searchQuery.trim() && /*#__PURE__*/React.createElement("div", {
+    className: "search-mode-toggle"
   }, /*#__PURE__*/React.createElement("button", {
-    className: "btn-export-pdf",
-    onClick: () => exportPDF(filteredNotes, 'Ricerca: ' + searchQuery)
-  }, "\uD83D\uDCC4 Salva PDF")), /*#__PURE__*/React.createElement("div", {
+    className: `mode-btn ${searchScope === 'all' ? `active ${style}` : ''}`,
+    onClick: () => setSearchScope('all')
+  }, "Intera nota"), /*#__PURE__*/React.createElement("button", {
+    className: `mode-btn ${searchScope === 'title-theme' ? `active ${style}` : ''}`,
+    onClick: () => setSearchScope('title-theme')
+  }, "Titolo e tema")), searchQuery.trim() && filteredNotes.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "pdf-selection-bar"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pdf-selection-info"
+  }, /*#__PURE__*/React.createElement("span", null, notesSelectedForPDF.length + " di " + filteredNotes.length + " selezionate"), /*#__PURE__*/React.createElement("button", {
+    className: "pdf-selection-link",
+    onClick: selectAllForPDF
+  }, "Tutte"), /*#__PURE__*/React.createElement("button", {
+    className: "pdf-selection-link",
+    onClick: clearSelectionForPDF
+  }, "Nessuna")), /*#__PURE__*/React.createElement("div", {
+    className: "pdf-actions-row"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "btn-pdf-action btn-pdf-save",
+    disabled: notesSelectedForPDF.length === 0,
+    onClick: () => exportPDF(notesSelectedForPDF, 'Ricerca: ' + searchQuery)
+  }, "\uD83D\uDCBE Salva PDF sul dispositivo"))), /*#__PURE__*/React.createElement("div", {
     className: "notes-container"
   }, !searchQuery.trim() ? /*#__PURE__*/React.createElement("div", {
     className: "empty-state"
@@ -3130,7 +4059,18 @@ const App = () => {
     key: note.id,
     className: "note-card",
     onClick: () => editNote(note)
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("label", {
+    className: "search-select-wrap",
+    onClick: e => e.stopPropagation(),
+    title: "Includi nel PDF"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    className: `search-select-checkbox ${style}`,
+    checked: selectedForPDF.has(note.id),
+    onChange: () => toggleNoteForPDF(note.id)
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "search-select-label"
+  }, "PDF")), /*#__PURE__*/React.createElement("div", {
     className: "note-header"
   }, /*#__PURE__*/React.createElement("span", {
     className: "note-date"
@@ -3213,7 +4153,7 @@ const App = () => {
         setEditingNote(null);
         setFormData({
           date: selectedCalendarDate.toLocaleDateString('it-IT'),
-          category: categories[0],
+          category: categories[0] || 'Varie',
           theme: '',
           title: '',
           content: '',
@@ -3239,8 +4179,16 @@ const App = () => {
   }, "Note")), /*#__PURE__*/React.createElement("button", {
     className: `nav-item ${style} ${currentView === 'search' ? 'active' : ''}`,
     onClick: () => {
-      setCurrentView('search');
+      console.log('[Cerca] click bottom nav, currentView prima:', currentView);
+      setShowAddEdit(false);
+      setShowHelp(false);
+      setShowStyleSelector(false);
+      setShowFontSelector(false);
+      setShowMenu(false);
+      setShowContentReader(false);
       setSearchQuery('');
+      setSearchInputValue('');
+      setCurrentView('search');
     },
     title: "Cerca"
   }, /*#__PURE__*/React.createElement("span", null, "\uD83D\uDD0D"), /*#__PURE__*/React.createElement("span", {
@@ -3413,7 +4361,7 @@ const App = () => {
     },
     onClick: () => {
       const input = document.getElementById('newCategory');
-      if (input.value.trim()) {
+      if (input && input.value.trim()) {
         setCategories([...categories, input.value.trim()]);
         input.value = '';
       }
@@ -3443,7 +4391,7 @@ const App = () => {
   }, "\xD7")))))), /*#__PURE__*/React.createElement("div", {
     className: `modal ${showAddEdit ? 'show' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
-    className: "modal-content",
+    className: "modal-content fullscreen",
     ref: modalContentRef,
     style: {
       position: 'relative'
@@ -3513,54 +4461,74 @@ const App = () => {
     className: "form-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
-  }, "Titolo *"), searchQuery.trim() && !contentEditMode ? /*#__PURE__*/React.createElement("div", {
-    className: "content-highlight-view",
-    style: {
-      minHeight: '40px',
-      fontWeight: 'bold'
-    }
-  }, highlightText(formData.title || '', searchQuery, searchMode)) : /*#__PURE__*/React.createElement("input", {
+  }, "Titolo *"), /*#__PURE__*/React.createElement("input", {
     type: "text",
     className: "form-input",
     value: formData.title,
-    onChange: e => setFormData({
-      ...formData,
-      title: e.target.value.toUpperCase()
-    }),
+    onChange: e => setFormData(prev => ({
+      ...prev,
+      title: e.target.value
+    })),
+    style: { textTransform: 'uppercase' },
     placeholder: "INSERISCI IL TITOLO"
   })), /*#__PURE__*/React.createElement("div", {
     className: "form-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
-  }, "Contenuto"), searchQuery.trim() && !contentEditMode ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  }, "Contenuto"), !searchQuery.trim() && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    className: "edit-content-btn",
+    onClick: () => {
+      setHighlightMode(m => !m);
+      setContentEditMode(false);
+      setPendingSelection(null);
+    }
+  }, highlightMode ? "\u2328\uFE0F Torna a modifica" : "\uD83D\uDD8A\uFE0F Evidenzia testo"), searchQuery.trim() && !contentEditMode ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "content-highlight-view"
   }, highlightText(formData.content || '', searchQuery, searchMode)), /*#__PURE__*/React.createElement("button", {
     className: "edit-content-btn",
     onClick: () => setContentEditMode(true)
-  }, "\u270F\uFE0F Modifica contenuto")) : /*#__PURE__*/React.createElement("textarea", {
+  }, "\u270F\uFE0F Modifica contenuto")) : highlightMode ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "content-highlight-view",
+    ref: highlightViewRef,
+    onMouseUp: handlePreviewSelection,
+    onTouchEnd: handlePreviewSelection
+  }, renderContentWithHighlights(formData.content || '', formData.highlights, theme)), pendingSelection && /*#__PURE__*/React.createElement("div", {
+    className: "highlight-color-picker"
+  }, Object.keys(highlightColors).map(colorKey => /*#__PURE__*/React.createElement("button", {
+    key: colorKey,
+    type: "button",
+    className: "highlight-swatch",
+    style: { backgroundColor: highlightColors[colorKey][theme === 'dark' ? 'dark' : 'light'] },
+    onClick: () => applyHighlight(pendingSelection.start, pendingSelection.end, colorKey)
+  })), pendingSelection.fromClick && /*#__PURE__*/React.createElement("button", {
+    key: "remove",
+    type: "button",
+    className: "highlight-swatch remove",
+    onClick: () => removeHighlightAt(pendingSelection.start, pendingSelection.end)
+  }, "\u2715"))) : /*#__PURE__*/React.createElement("div", {
+    style: { position: 'relative' }
+  }, /*#__PURE__*/React.createElement("textarea", {
+    ref: textareaRef,
     className: "form-textarea",
     value: formData.content,
-    onChange: e => {
-      e.target.style.height = 'auto';
-      e.target.style.height = e.target.scrollHeight + 'px';
-      setFormData({
-        ...formData,
-        content: e.target.value
-      });
+    onChange: e => setFormData(prev => ({
+      ...prev,
+      content: e.target.value
+    })),
+    onFocus: () => {
+      setRealVH();
+      startCaretPoll();
     },
-    onFocus: e => {
-      e.target.style.height = 'auto';
-      e.target.style.height = e.target.scrollHeight + 'px';
-      setTimeout(() => {
-        setRealVH();
-        scrollCursorAboveKeyboard();
-      }, 400);
-    },
-    onKeyUp: () => {
-      scrollCursorAboveKeyboard();
-    },
+    onBlur: stopCaretPoll,
+    onKeyUp: () => requestAnimationFrame(scrollCursorAboveKeyboard),
+    onClick: () => requestAnimationFrame(scrollCursorAboveKeyboard),
+    onSelect: () => requestAnimationFrame(scrollCursorAboveKeyboard),
     placeholder: "Scrivi qui le tue note..."
-  })), /*#__PURE__*/React.createElement("div", {
+  }), /*#__PURE__*/React.createElement(ScrollThumb, {
+    scrollRef: textareaRef,
+    color: themeColors[style] || '#4CAF50'
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "form-group"
   }, /*#__PURE__*/React.createElement("label", {
     className: "form-label"
@@ -3662,6 +4630,23 @@ const App = () => {
       color: '#4CAF50'
     }
   }, "Tocca per aprire")))), /*#__PURE__*/React.createElement("button", {
+    onClick: (e) => { e.stopPropagation(); shareAttachment(att); },
+    title: "Condividi allegato",
+    style: {
+      background: '#2196F3',
+      color: 'white',
+      border: 'none',
+      borderRadius: '50%',
+      width: '24px',
+      height: '24px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0
+    }
+  }, "\uD83D\uDCE4"), /*#__PURE__*/React.createElement("button", {
     onClick: () => removeAttachment(i),
     style: {
       background: '#f44336',
@@ -3753,7 +4738,9 @@ const App = () => {
       padding: '10px 8px'
     },
     onClick: saveNote
-  }, "Salva")))), /*#__PURE__*/React.createElement("div", {
+  }, "Salva")), /*#__PURE__*/React.createElement("div", {
+    style: { height: 'var(--kb-height, 0px)', flexShrink: 0 }
+  }))), /*#__PURE__*/React.createElement("div", {
     className: `modal ${showDatePicker ? 'show' : ''}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "modal-content"
@@ -3881,7 +4868,7 @@ const App = () => {
     className: `btn btn-primary ${style}`,
     onClick: () => {
       const timeInput = document.getElementById('timePickerInput');
-      const time = timeInput.value;
+      const time = timeInput ? timeInput.value : '';
       if (time && selectedDateForReminder) {
         selectDateTimeForReminder(selectedDateForReminder, time);
         setShowTimePicker(false);
@@ -4056,7 +5043,9 @@ const App = () => {
       marginBottom: '12px',
       color: '#4CAF50'
     }
-  }, "\uD83D\uDCDD Come usare l'app"), /*#__PURE__*/React.createElement("p", null, /*#__PURE__*/React.createElement("strong", null, "Creare una nota:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il pulsante ", /*#__PURE__*/React.createElement("strong", null, "+"), " in basso a destra"), /*#__PURE__*/React.createElement("p", null, "\u2022 Scegli la ", /*#__PURE__*/React.createElement("strong", null, "data"), ", la ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " e il ", /*#__PURE__*/React.createElement("strong", null, "tema")), /*#__PURE__*/React.createElement("p", null, "\u2022 Compila ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " e ", /*#__PURE__*/React.createElement("strong", null, "contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 I campi ", /*#__PURE__*/React.createElement("strong", null, "Tema"), " e ", /*#__PURE__*/React.createElement("strong", null, "Titolo"), " vengono convertiti automaticamente in ", /*#__PURE__*/React.createElement("strong", null, "MAIUSCOLO")), /*#__PURE__*/React.createElement("p", null, "\u2022 Salva con il pulsante verde"), /*#__PURE__*/React.createElement("p", {
+  }, "\uD83D\uDCDD Come usare l'app"), /*#__PURE__*/React.createElement("div", {
+    style: { marginBottom: '16px', padding: '12px', background: '#fff3e0', borderRadius: '8px', border: '1px solid #ffb74d' }
+  }, /*#__PURE__*/React.createElement("strong", null, "\uD83C\uDD95 Novit\u00E0 v1.2.76"), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Evidenzia testo"), ": nella modifica di una nota tocca \uD83D\uDD8A\uFE0F Evidenzia testo, seleziona una porzione di testo e scegli uno dei 5 colori (o \u2715 per rimuovere un'evidenziazione esistente)."), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Cursore pi\xF9 affidabile"), ": corretto un problema per cui, scrivendo in una nota, il cursore poteva restare nascosto dalla tastiera.")),/*#__PURE__*/React.createElement("p", null, /*#__PURE__*/React.createElement("strong", null, "Creare una nota:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il pulsante ", /*#__PURE__*/React.createElement("strong", null, "+"), " in basso a destra"), /*#__PURE__*/React.createElement("p", null, "\u2022 Scegli la ", /*#__PURE__*/React.createElement("strong", null, "data"), ", la ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " e il ", /*#__PURE__*/React.createElement("strong", null, "tema")), /*#__PURE__*/React.createElement("p", null, "\u2022 Compila ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " e ", /*#__PURE__*/React.createElement("strong", null, "contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 I campi ", /*#__PURE__*/React.createElement("strong", null, "Tema"), " e ", /*#__PURE__*/React.createElement("strong", null, "Titolo"), " vengono convertiti automaticamente in ", /*#__PURE__*/React.createElement("strong", null, "MAIUSCOLO")), /*#__PURE__*/React.createElement("p", null, "\u2022 Salva con il pulsante verde"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
@@ -4064,7 +5053,7 @@ const App = () => {
     style: {
       marginTop: '16px'
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Allegati file:")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCCE ", /*#__PURE__*/React.createElement("strong", null, "Allega File"), ": aggiungi PDF, documenti Word, Excel e altri file"), /*#__PURE__*/React.createElement("p", null, "\u2022 Puoi allegare pi\xF9 file alla stessa nota"), /*#__PURE__*/React.createElement("p", null, "\u2022 Gli allegati appaiono come etichette nella nota"), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca la ", /*#__PURE__*/React.createElement("strong", null, "\xD7"), " accanto a un allegato per rimuoverlo"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Allegati file:")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCCE ", /*#__PURE__*/React.createElement("strong", null, "Allega File"), ": aggiungi PDF, documenti Word, Excel e altri file"), /*#__PURE__*/React.createElement("p", null, "\u2022 Puoi allegare pi\xF9 file alla stessa nota"), /*#__PURE__*/React.createElement("p", null, "\u2022 Gli allegati appaiono come etichette nella nota"), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il pulsante blu ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCE4"), " accanto a un allegato per condividerlo (WhatsApp, email, Drive, ecc.)"), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca la ", /*#__PURE__*/React.createElement("strong", null, "\xD7"), " accanto a un allegato per rimuoverlo"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
@@ -4072,11 +5061,11 @@ const App = () => {
     style: {
       marginTop: '16px'
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Navigazione (barra in basso):")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCDD ", /*#__PURE__*/React.createElement("strong", null, "Note"), " = Lista di tutte le note"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD0D ", /*#__PURE__*/React.createElement("strong", null, "Cerca"), " = Cerca per titolo, contenuto, categoria o tema"), /*#__PURE__*/React.createElement("p", null, "\u2022 Ricerca multi-parola: scrivi pi\xF9 parole (es. \"pagare bolletta\") per trovare note che le contengono tutte"), /*#__PURE__*/React.createElement("p", null, "\u2022 Accenti ignorati: \"elettricita\" trova \"elettricit\xE0\", \"piu\" trova \"pi\xF9\""), /*#__PURE__*/React.createElement("p", null, "\u2022 I risultati con la parola nel ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " appaiono per primi"), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il ", /*#__PURE__*/React.createElement("strong", null, "testo della nota"), " nei risultati per aprire il ", /*#__PURE__*/React.createElement("strong", null, "Lettore Contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 Con risultati trovati appare il pulsante ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCC4 Salva PDF"), " \u2014 tocca per salvare i risultati come file PDF nella cartella Download"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDDD3 ", /*#__PURE__*/React.createElement("strong", null, "Calendario"), " = Vedi le note per giorno"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Navigazione (barra in basso):")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCDD ", /*#__PURE__*/React.createElement("strong", null, "Note"), " = Lista di tutte le note"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD0D ", /*#__PURE__*/React.createElement("strong", null, "Cerca"), " = Cerca per titolo, contenuto, categoria o tema"), /*#__PURE__*/React.createElement("p", null, "\u2022 Ricerca multi-parola: scrivi pi\xF9 parole (es. \"pagare bolletta\") per trovare note che le contengono tutte"), /*#__PURE__*/React.createElement("p", null, "\u2022 Accenti ignorati: \"elettricita\" trova \"elettricit\xE0\", \"piu\" trova \"pi\xF9\""), /*#__PURE__*/React.createElement("p", null, "\u2022 \ud83d\udd52 ", /*#__PURE__*/React.createElement("strong", null, "Cronologia ricerche"), ": tocca il campo di ricerca vuoto per vedere le ultime ricerche, raggruppate per categoria dei risultati trovati. Tocca una voce per rilanciarla, o la \xD7 per rimuoverla singolarmente (fino a 50 voci salvate)"), /*#__PURE__*/React.createElement("p", null, "\u2022 I risultati con la parola nel ", /*#__PURE__*/React.createElement("strong", null, "titolo"), " appaiono per primi"), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca il ", /*#__PURE__*/React.createElement("strong", null, "testo della nota"), " nei risultati per aprire il ", /*#__PURE__*/React.createElement("strong", null, "Lettore Contenuto")), /*#__PURE__*/React.createElement("p", null, "\u2022 Con risultati trovati, sopra ogni nota appare una casella ", /*#__PURE__*/React.createElement("strong", null, "PDF"), " per spuntare quali note includere. Di default sono tutte selezionate."), /*#__PURE__*/React.createElement("p", null, "\u2022 Tocca ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCBE Salva PDF sul dispositivo"), " per scaricare il PDF nella cartella Download"), /*#__PURE__*/React.createElement("p", null, "\u2022 ", /*#__PURE__*/React.createElement("strong", null, "Nome PDF personalizzato"), ": prima del salvataggio puoi scegliere il nome del file (di default viene proposto \"Ricerca_<termine>\")"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDDD3 ", /*#__PURE__*/React.createElement("strong", null, "Calendario"), " = Vedi le note per giorno"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Filtri e ordinamento:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Usa il selettore ", /*#__PURE__*/React.createElement("strong", null, "\"Cosa vuoi vedere?\""), " per filtrare"), /*#__PURE__*/React.createElement("p", null, "\u2022 Filtra per: Tutto, Da Completare, Completate o per Categoria"), /*#__PURE__*/React.createElement("p", null, "\u2022 Dal menu \u22EE: ordina per ", /*#__PURE__*/React.createElement("strong", null, "data"), ", per ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " o ", /*#__PURE__*/React.createElement("strong", null, "alfabeticamente")), /*#__PURE__*/React.createElement("p", null, "\u2022 Ordinamento ", /*#__PURE__*/React.createElement("strong", null, "per categoria"), ": le note vengono raggruppate con intestazione di categoria"), /*#__PURE__*/React.createElement("p", null, "\u2022 La toolbar mostra ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCC1 per categoria"), " quando l'ordinamento per categoria \xE8 attivo"), /*#__PURE__*/React.createElement("p", null, "\u2022 Filtrando per una categoria specifica appare ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCC4 Salva PDF"), " per esportare tutte le note di quella categoria"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Filtri e ordinamento:")), /*#__PURE__*/React.createElement("p", null, "\u2022 Usa il selettore ", /*#__PURE__*/React.createElement("strong", null, "\"Cosa vuoi vedere?\""), " per filtrare"), /*#__PURE__*/React.createElement("p", null, "\u2022 Filtra per: Tutto, Da Completare, Completate o per Categoria"), /*#__PURE__*/React.createElement("p", null, "\u2022 Dal menu \u22EE: ordina per ", /*#__PURE__*/React.createElement("strong", null, "data"), ", per ", /*#__PURE__*/React.createElement("strong", null, "categoria"), " o ", /*#__PURE__*/React.createElement("strong", null, "alfabeticamente")), /*#__PURE__*/React.createElement("p", null, "\u2022 Ordinamento ", /*#__PURE__*/React.createElement("strong", null, "per categoria"), ": le note vengono raggruppate con intestazione di categoria. Puoi scegliere il sotto-ordinamento interno: ", /*#__PURE__*/React.createElement("strong", null, "per data"), ", ", /*#__PURE__*/React.createElement("strong", null, "per titolo"), " o ", /*#__PURE__*/React.createElement("strong", null, "per tema")), /*#__PURE__*/React.createElement("p", null, "\u2022 La toolbar mostra ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCC1 per categoria \u00B7 <criterio>"), " quando l'ordinamento per categoria \xE8 attivo (es. \"\uD83D\uDCC1 per categoria \u00B7 titolo\")"), /*#__PURE__*/React.createElement("p", null, "\u2022 Filtrando per una categoria specifica appare ", /*#__PURE__*/React.createElement("strong", null, "\uD83D\uDCC4 Salva PDF"), " per esportare tutte le note di quella categoria"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
@@ -4092,11 +5081,11 @@ const App = () => {
     style: {
       marginTop: '16px'
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Menu (\u22EE) in alto a destra:")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC5 ", /*#__PURE__*/React.createElement("strong", null, "Ordina per data"), " (ordine cronologico, pi\xF9 recenti prima)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC1 ", /*#__PURE__*/React.createElement("strong", null, "Ordina per categoria"), " (raggruppa le note per categoria)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD24 ", /*#__PURE__*/React.createElement("strong", null, "Ordina alfabeticamente"), " (A-Z per titolo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83C\uDFA8 ", /*#__PURE__*/React.createElement("strong", null, "Cambia stile"), " colore (5 temi disponibili)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD20 ", /*#__PURE__*/React.createElement("strong", null, "Cambia font"), " (3 font disponibili)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD0D ", /*#__PURE__*/React.createElement("strong", null, "Dimensione testo"), " (Normale, Grande, Molto Grande)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83C\uDF19/\u2600\uFE0F ", /*#__PURE__*/React.createElement("strong", null, "Cambia tema"), " chiaro/scuro"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC2 ", /*#__PURE__*/React.createElement("strong", null, "Gestisci categorie"), " (aggiungi/rimuovi)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCBE ", /*#__PURE__*/React.createElement("strong", null, "Esporta dati"), " (backup completo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE4 ", /*#__PURE__*/React.createElement("strong", null, "Esporta categoria..."), " (esporta solo una categoria)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE5 ", /*#__PURE__*/React.createElement("strong", null, "Importa dati"), " (ripristina da backup completo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE5 ", /*#__PURE__*/React.createElement("strong", null, "Importa in categoria..."), " (importa un file JSON in una categoria specifica: aggiungi o sostituisci)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD12 ", /*#__PURE__*/React.createElement("strong", null, "Imposta/Rimuovi PIN"), " di protezione"), /*#__PURE__*/React.createElement("p", null, "\u2022 \u23F0 ", /*#__PURE__*/React.createElement("strong", null, "Backup automatico"), " (imposta un orario giornaliero per il backup automatico)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \u2753 ", /*#__PURE__*/React.createElement("strong", null, "Aiuto"), " (questa guida)"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Menu (\u22EE) in alto a destra:")), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC5 ", /*#__PURE__*/React.createElement("strong", null, "Ordina per data"), " (ordine cronologico, pi\xF9 recenti prima)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC1 ", /*#__PURE__*/React.createElement("strong", null, "Per categoria \u00B7 per data"), " (raggruppa e ordina le note di ciascuna categoria per data crescente)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC1 ", /*#__PURE__*/React.createElement("strong", null, "Per categoria \u00B7 per titolo"), " (raggruppa per categoria; dentro ogni categoria A-Z per titolo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC1 ", /*#__PURE__*/React.createElement("strong", null, "Per categoria \u00B7 per tema"), " (raggruppa per categoria; dentro ogni categoria A-Z per tema)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD24 ", /*#__PURE__*/React.createElement("strong", null, "Ordina alfabeticamente"), " (A-Z per titolo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83C\uDFA8 ", /*#__PURE__*/React.createElement("strong", null, "Cambia stile"), " colore (5 temi disponibili)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD20 ", /*#__PURE__*/React.createElement("strong", null, "Cambia font"), " (3 font disponibili)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD0D ", /*#__PURE__*/React.createElement("strong", null, "Dimensione testo"), " (Normale, Grande, Molto Grande)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83C\uDF19/\u2600\uFE0F ", /*#__PURE__*/React.createElement("strong", null, "Cambia tema"), " chiaro/scuro"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCC2 ", /*#__PURE__*/React.createElement("strong", null, "Gestisci categorie"), " (aggiungi/rimuovi)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCBE ", /*#__PURE__*/React.createElement("strong", null, "Esporta dati"), " (backup completo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE4 ", /*#__PURE__*/React.createElement("strong", null, "Esporta categoria..."), " (esporta solo una categoria)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE5 ", /*#__PURE__*/React.createElement("strong", null, "Importa dati"), " (ripristina da backup completo)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDCE5 ", /*#__PURE__*/React.createElement("strong", null, "Importa in categoria..."), " (importa un file JSON in una categoria specifica: aggiungi o sostituisci)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \uD83D\uDD12 ", /*#__PURE__*/React.createElement("strong", null, "Imposta/Rimuovi PIN"), " di protezione"), /*#__PURE__*/React.createElement("p", null, "\u2022 \u23F0 ", /*#__PURE__*/React.createElement("strong", null, "Backup automatico"), " (imposta un orario giornaliero per il backup automatico)"), /*#__PURE__*/React.createElement("p", null, "\u2022 \u2753 ", /*#__PURE__*/React.createElement("strong", null, "Aiuto"), " (questa guida)"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px'
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Tutte le funzionalit\xE0:")), /*#__PURE__*/React.createElement("p", null, "\u2705 Salvataggio automatico"), /*#__PURE__*/React.createElement("p", null, "\u2705 Segna nota come \"Completata\" con checkbox"), /*#__PURE__*/React.createElement("p", null, "\u2705 Tocca una nota per modificarla"), /*#__PURE__*/React.createElement("p", null, "\u2705 \uD83D\uDDD1 Elimina e \uD83D\uDCCB Duplica visibili nella stessa riga"), /*#__PURE__*/React.createElement("p", null, "\u2705 Conferma richiesta prima di duplicare o eliminare"), /*#__PURE__*/React.createElement("p", null, "\u2705 Duplica una nota e modifica solo la data"), /*#__PURE__*/React.createElement("p", null, "\u2705 + nel calendario con data gi\xE0 pre-impostata"), /*#__PURE__*/React.createElement("p", null, "\u2705 Esporta una singola categoria"), /*#__PURE__*/React.createElement("p", null, "\u2705 Importa un file JSON in una categoria esistente (modalit\xe0 aggiungi o sostituisci)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Ordina per data / categoria / alfabeticamente"), /*#__PURE__*/React.createElement("p", null, "\u2705 Lettore Contenuto con testo evidenziato in ricerca"), /*#__PURE__*/React.createElement("p", null, "\u2705 Navigazione prev/next tra le occorrenze evidenziate nel Lettore Contenuto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Semicerchio di scorrimento rapido (trascina per scorrere) in lista note, Modifica Nota e Lettore Contenuto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Ricerca multi-parola con accenti ignorati"), /*#__PURE__*/React.createElement("p", null, "\u2705 Protezione app con PIN (4-6 cifre)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Backup e ripristino completo"), /*#__PURE__*/React.createElement("p", null, "\u2705 Backup automatico giornaliero all'orario scelto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Font e dimensione testo personalizzabili"), /*#__PURE__*/React.createElement("p", null, "\u2705 Promemoria nativi (suonano anche ad app chiusa)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Allega file (PDF, Word, Excel, ecc.) alle note"), /*#__PURE__*/React.createElement("p", null, "\u2705 Visualizza foto a schermo intero con lightbox"), /*#__PURE__*/React.createElement("p", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Tutte le funzionalit\xE0:")), /*#__PURE__*/React.createElement("p", null, "\u2705 Salvataggio automatico"), /*#__PURE__*/React.createElement("p", null, "\u2705 Segna nota come \"Completata\" con checkbox"), /*#__PURE__*/React.createElement("p", null, "\u2705 Tocca una nota per modificarla"), /*#__PURE__*/React.createElement("p", null, "\u2705 \uD83D\uDDD1 Elimina e \uD83D\uDCCB Duplica visibili nella stessa riga"), /*#__PURE__*/React.createElement("p", null, "\u2705 Conferma richiesta prima di duplicare o eliminare"), /*#__PURE__*/React.createElement("p", null, "\u2705 Duplica una nota e modifica solo la data"), /*#__PURE__*/React.createElement("p", null, "\u2705 + nel calendario con data gi\xE0 pre-impostata"), /*#__PURE__*/React.createElement("p", null, "\u2705 Esporta una singola categoria"), /*#__PURE__*/React.createElement("p", null, "\u2705 Importa un file JSON in una categoria esistente (modalit\xe0 aggiungi o sostituisci)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Ordina per data / categoria / alfabeticamente"), /*#__PURE__*/React.createElement("p", null, "\u2705 Lettore Contenuto con testo evidenziato in ricerca"), /*#__PURE__*/React.createElement("p", null, "\u2705 Navigazione prev/next tra le occorrenze evidenziate nel Lettore Contenuto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Semicerchio di scorrimento rapido (trascina per scorrere) in lista note, Modifica Nota e Lettore Contenuto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Ricerca multi-parola con accenti ignorati"), /*#__PURE__*/React.createElement("p", null, "\u2705 Cronologia ricerche raggruppata per categoria (fino a 50 voci)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Protezione app con PIN (4-6 cifre)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Backup e ripristino completo"), /*#__PURE__*/React.createElement("p", null, "\u2705 Backup automatico giornaliero all'orario scelto"), /*#__PURE__*/React.createElement("p", null, "\u2705 Font e dimensione testo personalizzabili"), /*#__PURE__*/React.createElement("p", null, "\u2705 Promemoria nativi (suonano anche ad app chiusa)"), /*#__PURE__*/React.createElement("p", null, "\u2705 Allega file (PDF, Word, Excel, ecc.) alle note"), /*#__PURE__*/React.createElement("p", null, "\u2705 Visualizza foto a schermo intero con lightbox"), /*#__PURE__*/React.createElement("p", null, "\u2705 Pulsante X (chiudi) pi\u00f9 grande e visibile nelle modali; titolo non pi\u00f9 tagliato sotto la status bar"), /*#__PURE__*/React.createElement("p", null, "\u2705 Evidenzia porzioni di testo nelle note con 5 colori a scelta"), /*#__PURE__*/React.createElement("p", {
     style: {
       marginTop: '16px',
       padding: '12px',
@@ -4123,7 +5112,7 @@ const App = () => {
       color: '#aaa',
       marginBottom: '12px'
     }
-  }, "Le Mie Note \u2014 versione 1.2.40"), /*#__PURE__*/React.createElement("button", {
+  }, "Le Mie Note \u2014 versione 1.2.79"), /*#__PURE__*/React.createElement("button", {
     className: `btn btn-primary ${style}`,
     onClick: () => setShowHelp(false)
   }, "Ho capito!"))))), autoBackupToast && /*#__PURE__*/React.createElement("div", {
@@ -4438,40 +5427,165 @@ startReminderCheck();
 
 // Fix tastiera Android: mantiene il cursore visibile sopra la tastiera
 const setRealVH = () => {
-  const h = (window.visualViewport ? window.visualViewport.height : window.innerHeight) * 0.01;
+  const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const h = vvHeight * 0.01;
   document.documentElement.style.setProperty('--real-vh', h + 'px');
+  // Altezza reale della tastiera: su questa WebView il layout (100vh/innerHeight) NON si
+  // restringe quando la tastiera si apre, solo visualViewport.height lo fa. La differenza
+  // e quindi l'altezza esatta della tastiera, usata per allungare lo scroll disponibile
+  // (vedi .modal-content.fullscreen) senza mai ridurre il contenitore stesso.
+  const kb = Math.max(0, window.innerHeight - vvHeight);
+  document.documentElement.style.setProperty('--kb-height', kb + 'px');
+};
+
+// Misura la posizione verticale REALE del caret dentro la textarea, tenendo
+// conto dell'a-capo automatico (word wrap).
+//
+// ATTENZIONE (bug trovato su Xiaomi/Android WebView): il "font boosting" della
+// WebView gonfia i font in modo INCOERENTE tra la textarea e qualsiasi elemento
+// clone creato per la misura (il clone risultava ~2x piu alto del reale), quindi
+// misurare direttamente i pixel sul clone dava una posizione sbagliata e il
+// cursore spariva sotto la tastiera.
+//
+// Soluzione robusta: si misura solo il RAPPORTO (testo-fino-al-cursore / testo-totale)
+// con dei cloni — rapporto che resta corretto perche entrambi i cloni subiscono lo
+// stesso boosting — e lo si riscala sull'altezza REALE del contenuto della textarea
+// (ta.scrollHeight), che e sempre accurata.
+const getCaretTopInTextarea = (ta) => {
+  const sel = ta.selectionStart || 0;
+  const style = window.getComputedStyle(ta);
+  const padT = parseFloat(style.paddingTop) || 0;
+  const padB = parseFloat(style.paddingBottom) || 0;
+  const padL = parseFloat(style.paddingLeft) || 0;
+  const padR = parseFloat(style.paddingRight) || 0;
+  if (sel <= 0) return padT;
+  const realContent = ta.scrollHeight - padT - padB;   // altezza reale del testo
+  const contentW = ta.clientWidth - padL - padR;       // larghezza utile del testo
+  if (realContent <= 0 || contentW <= 0) return padT;
+  const measure = (text) => {
+    const m = document.createElement('div');
+    ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'fontVariant', 'letterSpacing',
+      'lineHeight', 'textTransform', 'wordSpacing', 'textIndent', 'tabSize'].forEach(p => { m.style[p] = style[p]; });
+    m.style.boxSizing = 'content-box';
+    m.style.padding = '0';
+    m.style.width = contentW + 'px';
+    m.style.position = 'absolute';
+    m.style.left = '-9999px';
+    m.style.top = '0';
+    m.style.visibility = 'hidden';
+    m.style.whiteSpace = 'pre-wrap';
+    m.style.overflowWrap = 'break-word';
+    m.style.wordBreak = style.wordBreak;
+    m.textContent = text.length ? text : '.';
+    document.body.appendChild(m);
+    const h = m.offsetHeight;
+    document.body.removeChild(m);
+    return h;
+  };
+  const fullH = measure(ta.value);
+  if (!fullH) return padT;
+  const uptoH = measure(ta.value.substring(0, sel));
+  return padT + realContent * (uptoH / fullH);
+};
+
+// .modal (esterno) e .modal-content (interno) sono entrambi scrollabili in modo
+// indipendente: per una nota corta/appena creata .modal-content spesso non ha
+// nulla da scrollare, quindi la correzione va applicata a .modal in quel caso.
+const getEffectiveScroller = el => {
+  const mc = el.closest('.modal-content');
+  const modal = el.closest('.modal');
+  const overflows = n => n && n.scrollHeight - n.clientHeight > 1;
+  if (overflows(mc)) return mc;
+  if (overflows(modal)) return modal;
+  return mc || modal || null;
+};
+
+let _caretPollTimer = null;
+const stopCaretPoll = () => {
+  if (_caretPollTimer) {
+    clearInterval(_caretPollTimer);
+    _caretPollTimer = null;
+  }
+};
+// Ritenta la correzione dello scroll a intervalli brevi invece di un singolo
+// timeout fisso, per coprire durate variabili dell'animazione della tastiera
+// nativa Android (e WebView dove visualViewport non e affidabile).
+const startCaretPoll = () => {
+  stopCaretPoll();
+  const startedAt = Date.now();
+  const maxDurationMs = 1200;
+  _caretPollTimer = setInterval(() => {
+    setRealVH();
+    scrollCursorAboveKeyboard();
+    const activeTag = document.activeElement && document.activeElement.tagName;
+    if (Date.now() - startedAt > maxDurationMs || (activeTag !== 'TEXTAREA' && activeTag !== 'INPUT')) {
+      stopCaretPoll();
+    }
+  }, 100);
 };
 
 const scrollCursorAboveKeyboard = () => {
   const activeEl = document.activeElement;
   if (!activeEl || (activeEl.tagName !== 'TEXTAREA' && activeEl.tagName !== 'INPUT')) return;
   const vvHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const cs = window.getComputedStyle(activeEl);
+  // line-height puo essere "normal" (NaN): in tal caso stimalo dal font (~1.3x).
+  const lineHeight = parseFloat(cs.lineHeight) || (parseFloat(cs.fontSize) || 17) * 1.3;
   const rect = activeEl.getBoundingClientRect();
-  if (rect.bottom > vvHeight - 16) {
-    const modalContent = activeEl.closest('.modal-content');
-    if (modalContent) {
-      modalContent.scrollTop += rect.bottom - vvHeight + 40;
-      return;
-    }
-    const contentArea = activeEl.closest('.content-area');
-    if (contentArea) {
-      contentArea.scrollTop += rect.bottom - vvHeight + 40;
-    }
+  let cursorTop, cursorBottom;
+  if (activeEl.tagName === 'TEXTAREA' && activeEl.selectionStart != null) {
+    // Posizione reale del caret (gestisce correttamente le righe mandate a capo).
+    const caretTop = getCaretTopInTextarea(activeEl);
+    cursorTop = rect.top + caretTop - activeEl.scrollTop;
+    cursorBottom = cursorTop + lineHeight;
+  } else {
+    cursorTop = rect.top;
+    cursorBottom = rect.bottom;
+  }
+  const scroller = getEffectiveScroller(activeEl) || activeEl.closest('.content-area');
+  if (!scroller) return;
+  const margin = 40;
+  // Limite di sicurezza: non applicare mai una correzione piu grande di un'altezza di
+  // viewport in un colpo solo. Una misura del caret imprecisa (es. durante il resize
+  // automatico della textarea, o piu eventi che scattano in rapida successione) puo
+  // altrimenti produrre un delta enorme che scorre la modale fino in fondo, nascondendo
+  // del tutto il campo di testo dietro la tastiera invece di mostrare il cursore.
+  // Con la clamp, una correzione troppo grande viene applicata gradualmente nei
+  // richiami successivi (ogni tasto/onSelect richiama questa funzione) invece che
+  // tutta in una volta.
+  const maxDelta = vvHeight;
+  if (cursorBottom > vvHeight - margin) {
+    // Il cursore e nascosto dalla tastiera: scorri verso il basso per mostrarlo.
+    scroller.scrollTop += Math.min(cursorBottom - (vvHeight - margin), maxDelta);
+  } else if (cursorTop < 80) {
+    // Il cursore e finito sopra l'area visibile: scorri verso l'alto.
+    scroller.scrollTop += Math.max(cursorTop - 80, -maxDelta);
   }
 };
 
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
     setRealVH();
-    setTimeout(scrollCursorAboveKeyboard, 150);
+    startCaretPoll();
   });
   window.visualViewport.addEventListener('scroll', setRealVH);
 }
 setRealVH();
 
-// Usa React 18 createRoot API
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(/*#__PURE__*/React.createElement(App, null));
+// Usa React 18 createRoot API — mount dopo deviceready (v1.2.52)
+// così cordova.file.* è già popolato al primo render.
+const mountApp = () => {
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(/*#__PURE__*/React.createElement(App, null));
+};
+if (window.cordova) {
+  let mounted = false;
+  const safeMount = () => { if (mounted) return; mounted = true; mountApp(); };
+  document.addEventListener('deviceready', safeMount, false);
+  setTimeout(safeMount, 2500); // safety: se deviceready non arriva, monta comunque
+} else {
+  mountApp();
+}
     </script>
 </body>
 </html>

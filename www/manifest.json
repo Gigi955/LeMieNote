@@ -1,0 +1,22 @@
+{
+  "name": "Le Mie Note",
+  "short_name": "Le Mie Note",
+  "description": "App per gestire note, promemoria e calendario",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#4CAF50",
+  "theme_color": "#4CAF50",
+  "icons": [
+    {
+      "src": "./icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

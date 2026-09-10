@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'lemienote-v1.2.40';
+const CACHE_VERSION = 'lemienote-v1.2.74';
 
 const STATIC_ASSETS = [
   './',
@@ -7,8 +7,9 @@ const STATIC_ASSETS = [
   './sw.js',
   './icons/icon-144.png',
   './icons/icon-192.png',
-  'https://unpkg.com/react@18/umd/react.production.min.js',
-  'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'
+  './js/react.production.min.js',
+  './js/react-dom.production.min.js',
+  './js/jspdf.umd.min.js'
 ];
 
 // Installa e pre-cacha tutti gli asset statici
